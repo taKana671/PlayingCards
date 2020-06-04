@@ -3,4 +3,4 @@
 * Pyramid
 
 # Demo
-![demo](https://github.com/KanaeOhta/PlayingCards/blob/master/play.gif)
+![demo](https://github.com/KanaeOhta/PlayingCards/blob/master/images/play.gif)
