@@ -99,6 +99,8 @@ class Window(ttk.Frame):
     def close(self, event=None):
         self.quit()
 
+
+
 if __name__ == '__main__':
     app = tk.Tk()
     app.title('Window')
