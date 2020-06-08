@@ -25,7 +25,7 @@ class Window(ttk.Frame):
     def create_images(self):
         image_path = os.path.join(os.path.dirname(
             os.path.realpath(__file__)), IMAGE_ROOT)
-        for name in (CLOSE, PYRAMID, PIN, BACK, RELOAD, CLOVER, RULES):
+        for name in (CLOSE, PYRAMID, RELOAD, CLOVER, RULES):
             self.images[name] = tk.PhotoImage(
                 file=os.path.join(image_path, '{}.png'.format(name)))
 
@@ -42,19 +42,12 @@ class Window(ttk.Frame):
         container.pack(fill=tk.BOTH, expand=True)
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
-
-        pyramid_frame = tk.Frame(container)
-        pyramid_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        # pyramid_board = pyramid.Board(pyramid_frame, self.status_text, self.images[BACK], self.images[PIN])
-        pyramid_board = pyramid.Board(pyramid_frame, self.status_text)
-        pyramid_board.pack(fill=tk.BOTH, expand=True)
-        self.games[PYRAMID] = (pyramid_frame, pyramid_board)
-
-        clover_frame = tk.Frame(container)
-        clover_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        clover_board = fourleafclover.Board(clover_frame, self.status_text)
-        clover_board.pack(fill=tk.BOTH, expand=True)
-        self.games[CLOVER] = (clover_frame, clover_board)
+        for name, module in zip((PYRAMID, CLOVER), (pyramid, fourleafclover)):
+            frame = tk.Frame(container) 
+            frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+            game = module.Board(frame, self.status_text)
+            game.pack(fill=tk.BOTH, expand=True)
+            self.games[name] = (frame, game)
 
 
     def create_menubar(self):
@@ -89,7 +82,6 @@ class Window(ttk.Frame):
         status_label = ttk.Label(statusbar, textvariable=self.status_text, font=('', 20))
         status_label.pack(side=tk.LEFT)
         statusbar.columnconfigure(0, weight=1)
-        # statusbar.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         statusbar.pack(side=tk.BOTTOM, fill=tk.X)
         
 
@@ -106,7 +98,6 @@ class Window(ttk.Frame):
 
     def close(self, event=None):
         self.quit()
-
 
 if __name__ == '__main__':
     app = tk.Tk()
