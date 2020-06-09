@@ -1,5 +1,4 @@
 from collections import namedtuple
-
 import os
 import random
 import tkinter as tk
@@ -7,18 +6,15 @@ import tkinter as tk
 from globals import *
 
 
-
 CARD_X = int(BOARD_WIDTH/2) - 150
-CARD_Y = int(BOARD_HEIGHT/5)
+CARD_Y = 100 # int(BOARD_HEIGHT/5)
+CARD_OFFSET_Y = 130
 STACK_OFFSET = 0.3
 SPACE = 90
-STOCK_X = BOARD_WIDTH - 300 
+STOCK_X = BOARD_WIDTH - 150 
 STOCK_Y = BOARD_HEIGHT - 100
 PIN_OFFSET_X = 18
 PIN_OFFSET_y = 30
-
-
-
 
 
 CardFace = namedtuple('CardFace', 'image mark value')
@@ -73,8 +69,9 @@ class Board(tk.Canvas):
         self.config(width=BOARD_WIDTH, height=BOARD_HEIGHT)
         random.shuffle(self.deck)
         self.playing_cards = {} 
-        self.setup_cards(self.deck[:self.rows*self.columns])
-        self.setup_stock(self.deck[self.rows*self.columns:])
+        sep = self.rows*self.columns
+        self.setup_cards(self.deck[:sep])
+        self.setup_stock(self.deck[sep:])
         for name in self.playing_cards.keys():
             self.tag_bind(name, '<ButtonPress-1>', self.click)
 
@@ -90,8 +87,7 @@ class Board(tk.Canvas):
 
 
     def setup_cards(self, cards):
-        x = CARD_X
-        y = CARD_Y
+        x, y = CARD_X, CARD_Y
         for i, face in enumerate(cards, 1):
             name = 'card{}'.format(i)
             item_id = self.create_image(x, y, image=face.image, tags=name)
@@ -100,7 +96,7 @@ class Board(tk.Canvas):
             x += SPACE
             if i % self.columns == 0:
                 x = CARD_X
-                y += 130
+                y += CARD_OFFSET_Y
 
 
     def setup_stock(self, cards):
@@ -144,6 +140,7 @@ class Board(tk.Canvas):
             self.selected.remove(card)
         else:
             self.selected.append(card)
+        self.update_status()
         same = len(set(card.mark for card in self.selected)) == 1 # all marks the same?
         court_cards = sum(10 < card.value for card in self.selected) # the number of th court cards
         number_cards = sum(card.value <= 10 for card in self.selected) # the number of the number cards
@@ -157,7 +154,6 @@ class Board(tk.Canvas):
                 self.undo()
             elif total == 15:
                 self.set_new_cards()
-        self.update_status()
  
 
     def undo(self):
@@ -169,15 +165,16 @@ class Board(tk.Canvas):
     def set_new_cards(self):
         cards = sorted(self.selected, key=lambda x: x.order)
         self.selected = []
+
         self.after(self.delay, lambda: self.delete_cards(cards))
         self.after(self.delay, lambda: self.start_move(cards))
 
 
     def start_move(self, cards):
         self.destinations = [(card.x, card.y) for card in cards]
+        self.move_cards = []
         stocks = [card for card in self.playing_cards.values() if not card.face_up]
         stocks.sort(key=lambda x: x.id, reverse=True)
-        self.move_cards = []
         for i, card in enumerate(cards, 1):
             if i <= len(stocks):
                 stock = stocks[i-1]
@@ -192,11 +189,11 @@ class Board(tk.Canvas):
 
     def run_move_sequence(self):
         if not self.is_moved:
-            if not self.move_cards[self.idx].face_up:
-                card = self.move_cards[self.idx]
+            card = self.move_cards[self.idx]
+            if not card.face_up:
                 self.itemconfig(card.id, image=card.image)
                 card.face_up = True
-            self.move_card(self.move_cards[self.idx].id, self.destinations[self.idx])
+            self.move_card(card.id, self.destinations[self.idx])
             self.after(MOVE_SPEED, self.run_move_sequence)
         else:
             self.idx += 1
@@ -238,7 +235,7 @@ class Board(tk.Canvas):
 
     def update_status(self):
         text = ', '.join(['{} {}'.format(card.mark, card.value) for card in self.selected])
-        self.status_text.set('Selected card: {}'.format(text))
+        self.status_text.set(text)
 
 
 

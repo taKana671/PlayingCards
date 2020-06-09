@@ -8,18 +8,22 @@ from globals import *
 
 
 PYRAMID_X = int(BOARD_WIDTH/2)
-PYRAMID_Y = int(BOARD_HEIGHT/3)
+PYRAMID_Y = int(BOARD_HEIGHT/5)
+PYRAMID_OFFSET_X = 45
+PYRAMID_OFFSET_Y = 40
 STACK_OFFSET = 0.3
 SPACE = 90
-STOCK_X = BOARD_WIDTH - 200 
-STOCK_Y = BOARD_HEIGHT - 100
-JOCKER_X  = 200
+JOCKER_X  = 50
 JOCKER_Y = 100
+STOCK_X = int(BOARD_WIDTH*3/4) 
+STOCK_Y = BOARD_HEIGHT - 80
 OPEN_STOCK_X = STOCK_X - SPACE 
 OPEN_STOCK_Y = STOCK_Y
-DISCARD_X = JOCKER_X
+DISCARD_TEMP_X = OPEN_STOCK_X - 300
+DISCARD_X = int(BOARD_WIDTH/4)
 DISCARD_Y = STOCK_Y
-STATUS_MESSAGE = 'No cards selected.'
+PIN_OFFSET_X = 18
+PIN_OFFSET_y = 30
 
 
 CardFace = namedtuple('CardFace', 'image mark value')
@@ -27,7 +31,8 @@ CardFace = namedtuple('CardFace', 'image mark value')
 
 class Card:
 
-    def __init__(self, item_id, face, status, x, y, face_up=False, left=None, right=None):
+    def __init__(self, item_id, face, status, x, y, 
+            face_up=False, left=None, right=None):
         self.id = item_id
         self.face = face 
         self.status = status
@@ -36,7 +41,6 @@ class Card:
         self.face_up = face_up
         self.left = left
         self.right = right
-        self.face_up = face_up
         self.dele = False
         self.pin = None
 
@@ -60,20 +64,16 @@ class Card:
 class Board(tk.Canvas):
 
     def __init__(self, master, status_text, delay=400, rows=7):
-    # def __init__(self, master, status_text, back, pin, delay=400, rows=7):
         self.status_text = status_text
         self.rows = rows
         self.delay = delay
-        self.stock = None
         self.discard_x = DISCARD_X
         self.discard_y = DISCARD_Y
         self.selected = []
         self.deck = [face for face in self.create_card()]
         self.back = tk.PhotoImage(file='images/back.png')
         self.pin = tk.PhotoImage(file='images/pin.png')
-        # self.back = back
-        # self.pin = pin
-        self.playing_cards = {} 
+        self.now_moving = False
         super().__init__(master, width=BOARD_WIDTH, height=BOARD_HEIGHT, bg=BOARD_COLOR)
         self.pack(fill=tk.BOTH, expand=True)
         self.new_game()
@@ -85,7 +85,8 @@ class Board(tk.Canvas):
         for path in os.listdir(image_path):
             name = os.path.splitext(path)[0]
             mark, value = name.split('_')    
-            yield CardFace(tk.PhotoImage(file=os.path.join(image_path, path)), mark, int(value))
+            yield CardFace(tk.PhotoImage(
+                file=os.path.join(image_path, path)), mark, int(value))
 
 
     def new_game(self):
@@ -93,6 +94,7 @@ class Board(tk.Canvas):
         # config() changes attributes after creating object. 
         self.config(width=BOARD_WIDTH, height=BOARD_HEIGHT)
         random.shuffle(self.deck)
+        self.playing_cards = {} 
         cards = [face for face in self.deck if not face.mark.startswith('jocker')]
         jockers = [face for face in self.deck if face.mark.startswith('jocker')]    
         limit = int(self.rows * (self.rows+1) / 2) # the number of pyramit cards
@@ -104,12 +106,13 @@ class Board(tk.Canvas):
 
 
     def setup_pyramid(self, pyramid_cards):
+        # make array as [[1 element], [2 elements], [3 elements],...]
         start = 0
         cards = []
         for i in range(1, self.rows+1):
             cards.append(pyramid_cards[start:start + i])
             start = start + i
-
+        # layout pyramid
         x, y = PYRAMID_X, PYRAMID_Y
         for i, row in enumerate(cards, 1):
             for j, face in enumerate(row, 1):
@@ -123,8 +126,9 @@ class Board(tk.Canvas):
                 card = Card(item_id, face, 'pyramid', x, y, face_up)
                 self.playing_cards[name] = card
                 x += SPACE
-            x -= (SPACE * i) + 45
-            y += 40
+            x -= (SPACE * i) + PYRAMID_OFFSET_X
+            y += PYRAMID_OFFSET_Y
+        # set left and right cards
         for i, row in enumerate(cards[:-1], 1):
             for j, _ in enumerate(row, 1):
                 card = self.playing_cards['pyramid{}{}'.format(i, j)]
@@ -156,12 +160,9 @@ class Board(tk.Canvas):
     def click(self, event):
         card = self.get_card(event)
         if card.status == 'stock' and card.face_up == False:
-            if self.stock is None:
-                self.stock_face_up(card)
-            else:
-                self.discard_stock()
-                self.stock_face_up(card)
-            self.stock = card
+            if not self.now_moving:
+                self.start_move(card)
+                self.now_moving = True
         elif card.face_up:
             if not card.pin:
                 self.set_pin(card)
@@ -174,22 +175,47 @@ class Board(tk.Canvas):
         return self.playing_cards[tag]
        
 
-    def stock_face_up(self, card):
-        self.itemconfig(card.id, image=card.image)
-        self.coords(card.id, OPEN_STOCK_X, OPEN_STOCK_Y)
-        card.x, card.y = OPEN_STOCK_X, OPEN_STOCK_Y 
-        card.face_up = True 
+    def start_move(self, card):
+        stock = [card for card in self.playing_cards.values() \
+            if card.status == 'stock' and card.face_up and not card.dele]
+        self.destinations = []
+        self.move_cards = []
+        if stock:
+            stock = stock[0]  
+            stock.x, stock.y = self.discard_x, self.discard_y 
+            self.discard_x += STACK_OFFSET
+            self.discard_y -= STACK_OFFSET
+            stock.status = 'discarded'
+            self.destinations.append((DISCARD_TEMP_X, OPEN_STOCK_Y))
+            self.move_cards.append(stock)
+        card.x, card.y = OPEN_STOCK_X, OPEN_STOCK_Y
+        self.destinations.append((OPEN_STOCK_X, OPEN_STOCK_Y))
+        self.move_cards.append(card)
+        self.is_moved = False
+        self.idx = 0
+        self.run_move_sequence()
+       
 
+    def run_move_sequence(self):
+        if not self.is_moved:
+            self.move_card(self.move_cards[self.idx].id, self.destinations[self.idx])
+            self.after(MOVE_SPEED, self.run_move_sequence)
+        else:
+            card = self.move_cards[self.idx]
+            if not card.face_up:
+                self.itemconfig(card.id, image=card.image)
+                card.face_up = True    
+            if card.status == 'discarded':
+                self.coords(card.id, card.x, card.y)
+                self.tag_raise(card.id)
+            self.idx += 1
+            if self.idx < len(self.move_cards):
+                self.is_moved = False
+                self.run_move_sequence()
+            else:
+                self.now_moving = False
 
-    def discard_stock(self):
-        self.coords(self.stock.id, self.discard_x, self.discard_y)
-        self.tag_raise(self.stock.id)
-        self.stock.x, self.stocky = self.discard_x, self.discard_y 
-        self.discard_x += STACK_OFFSET
-        self.discard_y -= STACK_OFFSET
-        self.stock.status = 'discarded'
-
-
+        
     def pyramid_face_up(self):
         cards = filter(lambda x: x.right and x.left, self.playing_cards.values())
         for card in cards:
@@ -198,8 +224,32 @@ class Board(tk.Canvas):
                 card.face_up = True
 
 
+    def move_card(self, id, destination):
+        dest_x, dest_y = destination
+        coords = self.coords(id)
+        current_x, current_y = int(coords[0]), int(coords[1])
+        offset_x = offset_y = 0
+        if current_x < dest_x:
+            offset_x = 1
+        elif current_x > dest_x:
+            offset_x = -1
+        if current_y < dest_y:
+            offset_y = 1
+        elif current_y > dest_y:
+            offset_y = -1
+        if (offset_x, offset_y) != (0, 0):
+            self.move(id, offset_x, offset_y)
+        if (current_x, current_y) == (dest_x, dest_y):
+            self.is_moved = True
+
+
     def set_pin(self, card):
-        item_id = self.create_image(card.x + 18, card.y - 30, image=self.pin, tags='pin{}'.format(card.id))
+        item_id = self.create_image(
+            card.x + PIN_OFFSET_X, 
+            card.y - PIN_OFFSET_y, 
+            image=self.pin, 
+            tags='pin{}'.format(card.id)
+        )
         card.pin = item_id
 
 
@@ -238,19 +288,16 @@ class Board(tk.Canvas):
         self.remove_pins(cards)
 
 
-    def update_status(self, card=''):
-        if not card:
-            status = ''
-        else:
-            val = card.status if card.status == 'jocker' else card.value
-            if val == 13 or not self.selected:
-                status = val
-            elif len(self.selected) == 1:
-                try:
-                    text = self.status_text.get()
-                    status = '{} + {} = {}'.format(text, val, int(text) + int(val))
-                except ValueError:
-                    status = '{} + {} = {}'.format(text, val, 13)
+    def update_status(self, card):
+        val = card.status if card.status == 'jocker' else card.value
+        if val == 13 or not self.selected:
+            status = val
+        elif len(self.selected) == 1:
+            try:
+                text = self.status_text.get()
+                status = '{} + {} = {}'.format(text, val, int(text) + int(val))
+            except ValueError:
+                status = '{} + {} = {}'.format(text, val, 13)
         self.status_text.set(status)
 
 
