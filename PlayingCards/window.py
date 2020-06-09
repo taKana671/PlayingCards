@@ -93,6 +93,7 @@ class Window(ttk.Frame):
 
 
     def new_game(self):
+        self.status_text.set('')
         self.board.new_game()
 
 
