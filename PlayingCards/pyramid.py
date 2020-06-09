@@ -194,8 +194,7 @@ class Board(tk.Canvas):
         self.is_moved = False
         self.idx = 0
         self.run_move_sequence()
-        self.now_moving = False
-
+       
 
     def run_move_sequence(self):
         if not self.is_moved:
