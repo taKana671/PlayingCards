@@ -3,64 +3,33 @@ import os
 import random
 import tkinter as tk
 
+from base import BaseBoard, BaseCard, CardFace
 from globals import *
 
 
 CARD_X = int(BOARD_WIDTH/2) - 150
-CARD_Y = 100 # int(BOARD_HEIGHT/5)
+CARD_Y = 100
 CARD_OFFSET_Y = 130
 STACK_OFFSET = 0.3
 SPACE = 90
 STOCK_X = BOARD_WIDTH - 150 
 STOCK_Y = BOARD_HEIGHT - 100
-PIN_OFFSET_X = 18
-PIN_OFFSET_y = 30
 
 
-CardFace = namedtuple('CardFace', 'image mark value')
-
-
-class Card:
+class Card(BaseCard):
 
     def __init__(self, item_id, face, x, y, face_up=False, order=None):
-        self.id = item_id
-        self.face = face 
-        self.x = x
-        self.y = y
-        self.face_up = face_up
+        super().__init__(item_id, face, x, y, face_up)
         self.order = order
-        self.pin = None
 
 
-    @property
-    def value(self):
-        return self.face.value
-
-    
-    @property
-    def mark(self):
-        return self.face.mark
-
-
-    @property
-    def image(self):
-        return self.face.image
- 
-
-class Board(tk.Canvas):
+class Board(BaseBoard):
 
     def __init__(self, master, status_text, delay=400, rows=4, columns=4):
-        self.status_text = status_text
         self.rows = rows
         self.columns = columns
-        self.delay = delay
         self.selected = []
-        self.deck = [face for face in self.create_card()]
-        self.back = tk.PhotoImage(file='images/back.png')
-        self.pin = tk.PhotoImage(file='images/pin.png')
-        super().__init__(master, width=BOARD_WIDTH, height=BOARD_HEIGHT, bg=BOARD_COLOR)
-        self.pack(fill=tk.BOTH, expand=True)
-        self.new_game()
+        super().__init__(master, status_text, delay)
       
 
     def new_game(self):
@@ -122,17 +91,7 @@ class Board(tk.Canvas):
         item_id = self.find_closest(event.x, event.y)[0]
         tag = self.gettags(item_id)[0]
         return self.playing_cards[tag]
-       
-
-    def set_pin(self, card):
-        item_id = self.create_image(
-            card.x + PIN_OFFSET_X, 
-            card.y - PIN_OFFSET_y, 
-            image=self.pin, 
-            tags='pin{}'.format(card.id)
-        )
-        card.pin = item_id
-
+   
 
     def judge(self, card):
         if card in self.selected:
@@ -154,7 +113,7 @@ class Board(tk.Canvas):
                 self.undo()
             elif total == 15:
                 self.set_new_cards()
- 
+      
 
     def undo(self):
         cards = self.selected[0:]
@@ -202,43 +161,18 @@ class Board(tk.Canvas):
                 self.run_move_sequence()
 
 
-    def move_card(self, id, destination):
-        dest_x, dest_y = destination
-        coords = self.coords(id)
-        current_x, current_y = int(coords[0]), int(coords[1])
-        offset_x = offset_y = 0
-        if current_x < dest_x:
-            offset_x = 1
-        elif current_x > dest_x:
-            offset_x = -1
-        if current_y < dest_y:
-            offset_y = 1
-        elif current_y > dest_y:
-            offset_y = -1
-        if (offset_x, offset_y) != (0, 0):
-            self.move(id, offset_x, offset_y)
-        if (current_x, current_y) == (dest_x, dest_y):
-            self.is_moved = True
-
-
-    def remove_pins(self, cards):
-        for card in cards:
-            self.delete(card.pin)
-            card.pin = None
-    
-
-    def delete_cards(self, cards):
-        for card in cards:
-            self.delete(card.id)
-        self.remove_pins(cards)
-    
-
     def update_status(self):
         text = ', '.join(['{} {}'.format(card.mark, card.value) for card in self.selected])
         self.status_text.set(text)
 
 
+    def count_rest_cards(self):
+        cards = [card for card in self.playing_cards.values() if not card.dele]
+        if not cards:
+            self.after(self.delay, self.finish)
 
+
+    
 if __name__ == '__main__':
     application = tk.Tk()
     application.title('FourLeafClover')
