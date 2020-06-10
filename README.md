@@ -4,8 +4,7 @@
 * Four Leaf Clovers 
 
 # Demo
-![demo](https://github.com/KanaeOhta/PlayingCards/blob/master/images/play.gif)
-
+<img src="https://github.com/KanaeOhta/PlayingCards/blob/master/images/play.gif?raw=true"></img>
 
 # Requirements
 
