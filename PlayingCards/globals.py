@@ -1,12 +1,6 @@
 IMAGE_ROOT = 'images'
 CARD_ROOT = 'cards'
 
-ROOT = 'cards/'
-# BACK = 'images/back.png'
-# PIN = 'images/gabyou-illust10.png'
-
-IMAGE_ROOT = 'images'
-
 CLOSE = 'Close'
 PYRAMID = 'Pyramid'
 CLOVER = 'FourLeafClover'
@@ -15,10 +9,12 @@ RULES = 'Rules'
 PIN = 'pin'
 BACK = 'back'
 RELOAD = 'reload'
-
-
-BOARD_WIDTH = 1200
-BOARD_HEIGHT = 800
-BOARD_COLOR = 'green'
+RIBBON = 'ribbon'
 PAD = '0.75'
+
+BOARD_WIDTH = 1000
+BOARD_HEIGHT = 600
+BOARD_COLOR = 'green'
 MOVE_SPEED = 1
+PIN_OFFSET_X = 18
+PIN_OFFSET_y = 30
