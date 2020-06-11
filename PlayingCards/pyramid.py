@@ -82,10 +82,11 @@ class Board(BaseBoard):
             cards.append(pyramid_cards[start:start + i])
             start = start + i
         # layout pyramid
+        template = 'pyramid{}{}'
         x, y = PYRAMID_X, PYRAMID_Y
         for i, row in enumerate(cards, 1):
             for j, face in enumerate(row, 1):
-                name = 'pyramid{}{}'.format(i, j)
+                name = template.format(i, j)
                 item_id = self.create_image(
                     x, y,
                     image=face.image if i == self.rows else self.back, 
@@ -100,9 +101,9 @@ class Board(BaseBoard):
         # set left and right cards
         for i, row in enumerate(cards[:-1], 1):
             for j, _ in enumerate(row, 1):
-                card = self.playing_cards['pyramid{}{}'.format(i, j)]
-                card.left = self.playing_cards['pyramid{}{}'.format(i+1, j)]
-                card.right = self.playing_cards['pyramid{}{}'.format(i+1, j+1)]
+                card = self.playing_cards[template.format(i, j)]
+                card.left = self.playing_cards[template.format(i+1, j)]
+                card.right = self.playing_cards[template.format(i+1, j+1)]
               
 
     def setup_stock(self, cards):
