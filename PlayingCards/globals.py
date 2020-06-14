@@ -4,6 +4,7 @@ CARD_ROOT = 'cards'
 CLOSE = 'Close'
 PYRAMID = 'Pyramid'
 CLOVER = 'FourLeafClover'
+KLONEDIKE = 'Klonedike'
 RULES = 'Rules'
 
 PIN = 'pin'
