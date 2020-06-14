@@ -4,6 +4,7 @@ import tkinter.ttk as ttk
 
 import fourleafclover
 import pyramid
+import klonedike
 from globals import *
 
 
@@ -25,7 +26,7 @@ class Window(ttk.Frame):
     def create_images(self):
         image_path = os.path.join(os.path.dirname(
             os.path.realpath(__file__)), IMAGE_ROOT)
-        for name in (CLOSE, PYRAMID, RELOAD, CLOVER, RULES):
+        for name in (CLOSE, PYRAMID, RELOAD, CLOVER, RULES, KLONEDIKE):
             self.images[name] = tk.PhotoImage(
                 file=os.path.join(image_path, '{}.png'.format(name)))
 
@@ -42,7 +43,8 @@ class Window(ttk.Frame):
         container.pack(fill=tk.BOTH, expand=True)
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
-        for name, module in zip((PYRAMID, CLOVER), (pyramid, fourleafclover)):
+        for name, module in zip((PYRAMID, CLOVER, KLONEDIKE), 
+                (pyramid, fourleafclover, klonedike)):
             frame = tk.Frame(container) 
             frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
             game = module.Board(frame, self.status_text)
@@ -63,6 +65,8 @@ class Window(ttk.Frame):
             compound=tk.LEFT, image=self.images[PYRAMID])
         gamemenu.add_command(label=CLOVER, command=lambda: self.change_board(CLOVER),
             compound=tk.LEFT, image=self.images[CLOVER])
+        gamemenu.add_command(label=KLONEDIKE, command=lambda: self.change_board(KLONEDIKE),
+            compound=tk.LEFT, image=self.images[KLONEDIKE])
         gamemenu.add_command(label=CLOSE, command=self.close,
             compound=tk.LEFT, image=self.images[CLOSE])
         self.menubar.add_cascade(label="Game", menu=gamemenu)
