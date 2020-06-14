@@ -151,6 +151,7 @@ class Board(BaseBoard):
             card = self.move_cards[self.idx]
             if not card.face_up:
                 self.itemconfig(card.id, image=card.image)
+                self.tag_raise(card.id)
                 card.face_up = True
             self.move_card(card.id, self.destinations[self.idx])
             self.after(MOVE_SPEED, self.run_move_sequence)
