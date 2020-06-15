@@ -76,6 +76,16 @@ class BaseBoard(tk.Canvas):
         tag = self.gettags(item_id)[0]
         return tag 
 
+    
+    def get_id(self, event):
+        return self.find_closest(event.x, event.y)[0]
+
+
+    def turn_card(self, card, face_up):
+        image = card.image if face_up else self.back
+        self.itemconfig(card.id, image=image)
+        card.face_up = face_up
+
 
     def move_card(self, id, destination):
         dest_x, dest_y = destination
@@ -118,6 +128,10 @@ class BaseBoard(tk.Canvas):
             self.delete(card.id)
         self.remove_pins(cards)
         self.count_rest_cards()
+
+
+
+
 
 
     def finish(self):
