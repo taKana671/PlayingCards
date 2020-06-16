@@ -87,9 +87,10 @@ class BaseBoard(tk.Canvas):
         card.face_up = face_up
 
 
-    def move_card(self, id, destination):
+    def move_card(self, item, destination):
+        """item: item specifier (tag or id)"""
         dest_x, dest_y = destination
-        coords = self.coords(id)
+        coords = self.coords(item)
         current_x, current_y = int(coords[0]), int(coords[1])
         offset_x = offset_y = 0
         if current_x < dest_x:
@@ -101,21 +102,22 @@ class BaseBoard(tk.Canvas):
         elif current_y > dest_y:
             offset_y = -1
         if (offset_x, offset_y) != (0, 0):
-            self.move(id, offset_x, offset_y)
+            self.move(item, offset_x, offset_y)
         if (current_x, current_y) == (dest_x, dest_y):
             self.is_moved = True
 
 
-    def set_pin(self, card):
-        item_id = self.create_image(
-            card.x + PIN_OFFSET_X, 
-            card.y - PIN_OFFSET_y, 
-            image=self.pin, 
-            tags='pin{}'.format(card.id)
-        )
-        card.pin = item_id
+    def set_pins(self, cards):
+        for card in cards:
+            item_id = self.create_image(
+                card.x + PIN_OFFSET_X, 
+                card.y - PIN_OFFSET_y, 
+                image=self.pin, 
+                tags='pin{}'.format(card.id)
+            )
+            card.pin = item_id
         
-
+    
     def remove_pins(self, cards):
         for card in cards:
             self.delete(card.pin)
@@ -128,10 +130,6 @@ class BaseBoard(tk.Canvas):
             self.delete(card.id)
         self.remove_pins(cards)
         self.count_rest_cards()
-
-
-
-
 
 
     def finish(self):

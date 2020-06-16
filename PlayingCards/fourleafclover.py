@@ -83,7 +83,7 @@ class Board(BaseBoard):
         card = self.get_card(event)
         if card.face_up:
             if not card.pin:
-                self.set_pin(card)
+                self.set_pins((card,))
             self.judge(card)
 
 

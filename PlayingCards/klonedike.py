@@ -166,8 +166,7 @@ class Board(BaseBoard):
                 self.remove_pins(cards)
                 self.selected = []
             else:
-                for c in cards:
-                    self.set_pin(c)
+                self.set_pins(cards)
                 self.after(self.delay, lambda: self.judge(cards))
         elif card.status == 'stock' and not card.face_up:
             self.start_move_stock(card)
@@ -176,7 +175,7 @@ class Board(BaseBoard):
                 self.remove_pins((card,))
                 self.selected = []
             else:
-                self.set_pin(card)
+                self.set_pins((card,))
                 self.after(self.delay, lambda: self.judge(card))
         
 
@@ -275,7 +274,6 @@ class Board(BaseBoard):
                     goal = max(obj2, key=lambda x: x.y)
                     if goal.value - 1 == start.value and goal.color != start.color:
                         self.start_horizontal_move(start, goal)
-                    self.remove_pins(obj1 + obj2)
                 # card with value 13 or 1 => cardholder or aceholder
                 elif isinstance(obj2, Holder):
                     if (start.value == 13 and obj2.status == 'cardholder') \
@@ -283,13 +281,11 @@ class Board(BaseBoard):
                         if obj2.status == 'aceholder':
                             start.status = 'acestock'
                         self.start_horizontal_move(start, obj2)
-                    self.remove_pins(obj1)
                 # list => onto acestock 
                 elif isinstance(obj2, Card) and obj2.status == 'acestock' and len(obj1) == 1:
                     if start.value - 1 == obj2.value and start.mark == obj2.mark:
                         start.status = 'acestock'
                         self.start_horizontal_move(start, obj2)
-                    self.remove_pins((start, obj2))
             elif isinstance(obj1, Card) and obj1.status == 'openedstock':
                 # openedstock => card
                 if isinstance(obj2, list):
@@ -297,20 +293,17 @@ class Board(BaseBoard):
                     if goal.value - 1 == obj1.value and goal.color != obj1.color:
                         obj1.status = 'card'
                         self.start_horizontal_move(obj1, goal)
-                    self.remove_pins((obj2 + [obj1]))
                 # openedstock with value 13 or 1 => cardholder or aceholder
                 elif isinstance(obj2, Holder):
                     if (obj1.value == 13 and obj2.status == 'cardholder') \
                             or (obj1.value == 1 and obj2.status == 'aceholder'):
                         obj1.status = 'card' if obj2.status == 'cardholder' else 'acestock'
                         self.start_horizontal_move(obj1, obj2)
-                    self.remove_pins((obj1,))
                 # openedstock => onto acestock
                 elif isinstance(obj2, Card) and obj2.status == 'acestock':
                     if obj1.value - 1 == obj2.value and obj1.mark == obj2.mark:
                         obj1.status = 'acestock'
                         self.start_horizontal_move(obj1, obj2)
-                    self.remove_pins((obj1, obj2))
             elif isinstance(obj1, Card) and obj1.status == 'acestock':
                 # acestock => card
                 if isinstance(obj2, list):
@@ -318,14 +311,14 @@ class Board(BaseBoard):
                     if goal.value - 1 == obj1.value and goal.color != obj1.color:
                         obj1.status = 'card'
                         self.start_horizontal_move(obj1, goal)
-                    self.remove_pins((obj2 + [obj1]))
                 # acestock with value 13 => cardholder
                 elif isinstance(obj2, Holder) and obj2.status == 'cardholder': 
                     if obj1.value == 13:
                         obj1.status = 'card'
                         self.start_horizontal_move(obj1, obj2)
-                    self.remove_pins((obj1,))
-           
+            pined_cards = [card for card in self.playing_cards.values() if card.pin]
+            self.remove_pins(pined_cards)
+            
 
     def update_status(self, card=None):
         val = card.status if card.status == 'jocker' else card.value
