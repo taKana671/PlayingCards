@@ -107,7 +107,7 @@ class BaseBoard(tk.Canvas):
             self.is_moved = True
 
 
-    def set_pins(self, cards):
+    def set_pins(self, *cards):
         for card in cards:
             item_id = self.create_image(
                 card.x + PIN_OFFSET_X, 
@@ -118,17 +118,17 @@ class BaseBoard(tk.Canvas):
             card.pin = item_id
         
     
-    def remove_pins(self, cards):
+    def remove_pins(self, *cards):
         for card in cards:
             self.delete(card.pin)
             card.pin = None
        
 
-    def delete_cards(self, cards):
+    def delete_cards(self, *cards):
         for card in cards:
             card.dele = True
             self.delete(card.id)
-        self.remove_pins(cards)
+        self.remove_pins(*cards)
         self.count_rest_cards()
 
 
