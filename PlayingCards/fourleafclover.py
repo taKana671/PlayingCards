@@ -80,22 +80,17 @@ class Board(BaseBoard):
 
 
     def click(self, event):
-        card = self.get_card(event)
+        card = self.playing_cards[self.get_tag(event)]
         if card.face_up:
             if not card.pin:
-                self.set_pins((card,))
+                self.set_pins(card)
             self.judge(card)
 
 
-    def get_card(self, event):
-        item_id = self.find_closest(event.x, event.y)[0]
-        tag = self.gettags(item_id)[0]
-        return self.playing_cards[tag]
    
-
     def judge(self, card):
         if card in self.selected:
-            self.remove_pins((card,))
+            self.remove_pins(card)
             self.selected.remove(card)
         else:
             self.selected.append(card)
@@ -118,14 +113,14 @@ class Board(BaseBoard):
     def undo(self):
         cards = self.selected[0:]
         self.selected = []
-        self.after(self.delay, lambda: self.remove_pins(cards))
+        self.after(self.delay, lambda: self.remove_pins(*cards))
 
 
     def set_new_cards(self):
         cards = sorted(self.selected, key=lambda x: x.order)
         self.selected = []
 
-        self.after(self.delay, lambda: self.delete_cards(cards))
+        self.after(self.delay, lambda: self.delete_cards(*cards))
         self.after(self.delay, lambda: self.start_move(cards))
 
 

@@ -135,7 +135,7 @@ class Board(BaseBoard):
                 self.now_moving = True
         elif card.face_up:
             if not card.pin:
-                self.set_pins((card,))
+                self.set_pins(card)
             self.judge(card)
 
 
@@ -191,10 +191,10 @@ class Board(BaseBoard):
     def judge(self, card):
         self.update_status(card)
         if card.value == 13:
-            self.after(self.delay, lambda: self.delete_cards((card,)))
+            self.after(self.delay, lambda: self.delete_cards(card))
             self.after(self.delay, self.pyramid_face_up)
         elif len(self.selected) == 1 and self.selected[0] == card:
-            self.remove_pins((card,))
+            self.remove_pins(card)
             self.selected = []
         else:
             self.selected.append(card)
@@ -202,10 +202,10 @@ class Board(BaseBoard):
                 cards = self.selected[0:]
                 if sum(card.value == 14 for card in self.selected) >= 1 or \
                         sum(card.value for card in self.selected) == 13:
-                    self.after(self.delay, lambda: self.delete_cards(cards))
+                    self.after(self.delay, lambda: self.delete_cards(*cards))
                     self.after(self.delay, self.pyramid_face_up)
                 else:
-                    self.after(self.delay, lambda: self.remove_pins(cards))
+                    self.after(self.delay, lambda: self.remove_pins(*cards))
                 self.selected = []
 
 
