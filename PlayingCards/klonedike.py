@@ -320,7 +320,6 @@ class Board(BaseBoard):
                     if start.value == 13:
                         start.status = 'card'
                         self.start_horizontal_move(start, goal)
-            # pined_cards = [card for card in self.playing_cards.values() if card.pin]
             pined_cards = self.filter(lambda card: card.pin)
             if pined_cards:
                 self.remove_pins(*pined_cards)
@@ -332,6 +331,7 @@ class Board(BaseBoard):
         self.status_text.set(text)
 
 
+   
 if __name__ == '__main__':
     application = tk.Tk()
     application.title('Pyramid')
