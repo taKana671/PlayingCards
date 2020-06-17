@@ -106,7 +106,6 @@ class Board(BaseBoard):
         name = 'stockholder'
         item_id = self.create_image(STOCK_X, STOCK_Y, image=self.holder, tags=name)
         self.tag_bind(name, '<ButtonPress-1>', self.start_stock_back)
-      
         x, y = ACEHOLDER_X, ACEHOLDER_Y 
         for i in range(1, 3):
             for j in range(1, 3):
@@ -153,38 +152,44 @@ class Board(BaseBoard):
             y -= STACK_OFFSET
 
 
+    def filter(self, func):
+        cards = [card for card in self.playing_cards.values() if func(card)]
+        return cards
+
+
     def click_holder(self, event):
-        holder = self.holders[self.get_tag(event)]
-        self.after(self.delay, lambda: self.judge(holder))
+        if not self.now_moving:        
+            holder = self.holders[self.get_tag(event)]
+            self.after(self.delay, lambda: self.judge(holder))
 
 
     def click_card(self, event):
-        card = self.playing_cards[self.get_id(event)]
-        if card.status == 'card' and card.face_up:
-            cards = [c for c in self.playing_cards.values() if c.col == card.col]
-            if card.pin:
-                self.remove_pins(cards)
-                self.selected = []
-            else:
-                self.set_pins(cards)
-                self.after(self.delay, lambda: self.judge(cards))
-        elif card.status == 'stock' and not card.face_up:
-            self.start_move_stock(card)
-        elif card.status in {'openedstock', 'acestock'}:
-            if card.pin:
-                self.remove_pins((card,))
-                self.selected = []
-            else:
-                self.set_pins((card,))
-                self.after(self.delay, lambda: self.judge(card))
-        
-
+        if not self.now_moving:
+            card = self.playing_cards[self.get_id(event)]
+            if card.status == 'card' and card.face_up:
+                cards = self.filter(lambda x: x.col == card.col)    
+                if self.check_pins(card.pin, *cards):
+                    self.after(self.delay, lambda: self.judge(cards))
+            elif card.status == 'stock' and not card.face_up:
+                self.start_move_stock(card)
+            elif card.status in {'openedstock', 'acestock'}:
+                if self.check_pins(card.pin, card):
+                    self.after(self.delay, lambda: self.judge(card))
+     
+    
+    def check_pins(self, is_pinned, *cards):
+        if not is_pinned:
+            self.set_pins(*cards)
+            return True
+        self.remove_pins(*cards)
+        self.selected = []
+       
+            
     def start_stock_back(self, event):
-        cards = [card for card in self.playing_cards.values() \
-            if card.status == 'openedstock']
+        cards = self.filter(lambda card: card.status == 'openedstock')
         if cards:
-            self.open_stock_x = OPEN_STOCK_X
             cards.sort(key=lambda x: x.order)
+            self.open_stock_x = OPEN_STOCK_X
             self.open_stock_y = OPEN_STOCK_Y
             x, y = STOCK_X, STOCK_Y
             for card in cards:
@@ -216,6 +221,7 @@ class Board(BaseBoard):
         self.destinations = destinations
         self.is_moved = False
         self.idx = 0
+        self.now_moving = True
         self.run_move_sequence()
 
 
@@ -224,31 +230,32 @@ class Board(BaseBoard):
             self.move_card(self.move_cards[self.idx].col, self.destinations)
             self.after(MOVE_SPEED, self.run_move_sequence)
         else:
-            if self.move_cards[self.idx].status in {'openedstock', 'stock'}:
-                self.after_stock_moved(self.move_cards[self.idx])
+            card = self.move_cards[self.idx]
+            if card.status in {'openedstock', 'stock'}:
+                self.after_stock_moved(card)
             else:
-                self.after_card_moved(self.move_cards[self.idx])
+                self.after_card_moved(card)
             self.idx += 1
             if self.idx < len(self.move_cards):
                 self.is_moved = False
                 self.run_move_sequence()
+            else:
+                self.now_moving = False
 
 
     def after_card_moved(self, start):
-        col = start.col[:-1]
-        cards = [card for card in self.playing_cards.values() \
-            if card.col == start.col]
+        start_col = start.col
+        moved_cards = self.filter(lambda card: card.col == start.col)
         self.itemconfig(start.col, tag=self.goal_col)
-        for card in sorted(cards, key=lambda x: x.y):
+        for card in sorted(moved_cards, key=lambda x: x.y):
             coords = self.coords(card.id)
             card.x, card.y = int(coords[0]), int(coords[1])
             card.col = self.goal_col
-        cards = [card for card in self.playing_cards.values() \
-            if card.col == col + '0']
-        if cards:
-            new = max(cards, key=lambda x: x.y)
-            self.itemconfig(new.id, tag=col+'1')
-            new.col = col+'1'
+        rest_cards = self.filter(lambda card: card.col == start_col[:-1] + '0')
+        if rest_cards:
+            new = max(rest_cards, key=lambda x: x.y)
+            self.itemconfig(new.id, tag=start_col)
+            new.col = start_col
             self.turn_card(new, True)
 
 
@@ -263,82 +270,66 @@ class Board(BaseBoard):
 
 
     def judge(self, target):
-        # self.update_status(card)
         self.selected.append(target)
         if len(self.selected) == 2:
             obj1, obj2 = self.selected[0], self.selected[1]
+            start = min(obj1, key=lambda x: x.y) if isinstance(obj1, list) else obj1
+            goal = max(obj2, key=lambda x: x.y) if isinstance(obj2, list) else obj2
+            self.update_status((start, goal))
             self.selected = []
             if isinstance(obj1, list): 
-                start = min(obj1, key=lambda x: x.y)
-                if isinstance(obj2, list): # card  => card
-                    goal = max(obj2, key=lambda x: x.y)
+                # card  => card
+                if isinstance(obj2, list):
                     if goal.value - 1 == start.value and goal.color != start.color:
                         self.start_horizontal_move(start, goal)
                 # card with value 13 or 1 => cardholder or aceholder
-                elif isinstance(obj2, Holder):
-                    if (start.value == 13 and obj2.status == 'cardholder') \
-                            or (start.value == 1 and obj2.status == 'aceholder'):
-                        if obj2.status == 'aceholder':
-                            start.status = 'acestock'
-                        self.start_horizontal_move(start, obj2)
-                # list => onto acestock 
-                elif isinstance(obj2, Card) and obj2.status == 'acestock' and len(obj1) == 1:
-                    if start.value - 1 == obj2.value and start.mark == obj2.mark:
+                elif (start.value == 13 and goal.status == 'cardholder') \
+                        or (start.value == 1 and goal.status == 'aceholder'):
+                    if goal.status == 'aceholder':
                         start.status = 'acestock'
-                        self.start_horizontal_move(start, obj2)
+                    self.start_horizontal_move(start, goal)
+                # list => onto acestock 
+                elif obj2.status == 'acestock' and len(obj1) == 1:
+                    if start.value - 1 == goal.value and start.mark == goal.mark:
+                        start.status = 'acestock'
+                        self.start_horizontal_move(start, goal)
             elif isinstance(obj1, Card) and obj1.status == 'openedstock':
                 # openedstock => card
                 if isinstance(obj2, list):
-                    goal = max(obj2, key=lambda x: x.y)
-                    if goal.value - 1 == obj1.value and goal.color != obj1.color:
-                        obj1.status = 'card'
-                        self.start_horizontal_move(obj1, goal)
+                    if goal.value - 1 == start.value and goal.color != start.color:
+                        start.status = 'card'
+                        self.start_horizontal_move(start, goal)
                 # openedstock with value 13 or 1 => cardholder or aceholder
-                elif isinstance(obj2, Holder):
-                    if (obj1.value == 13 and obj2.status == 'cardholder') \
-                            or (obj1.value == 1 and obj2.status == 'aceholder'):
-                        obj1.status = 'card' if obj2.status == 'cardholder' else 'acestock'
-                        self.start_horizontal_move(obj1, obj2)
+                elif (start.value == 13 and goal.status == 'cardholder') \
+                        or (start.value == 1 and goal.status == 'aceholder'):
+                    start.status = 'card' if goal.status == 'cardholder' else 'acestock'
+                    self.start_horizontal_move(start, goal)
                 # openedstock => onto acestock
                 elif isinstance(obj2, Card) and obj2.status == 'acestock':
-                    if obj1.value - 1 == obj2.value and obj1.mark == obj2.mark:
-                        obj1.status = 'acestock'
-                        self.start_horizontal_move(obj1, obj2)
+                    if start.value - 1 == goal.value and start.mark == goal.mark:
+                        start.status = 'acestock'
+                        self.start_horizontal_move(start, goal)
             elif isinstance(obj1, Card) and obj1.status == 'acestock':
                 # acestock => card
                 if isinstance(obj2, list):
-                    goal = max(obj2, key=lambda x: x.y)
-                    if goal.value - 1 == obj1.value and goal.color != obj1.color:
-                        obj1.status = 'card'
-                        self.start_horizontal_move(obj1, goal)
+                    if goal.value - 1 == start.value and goal.color != start.color:
+                        start.status = 'card'
+                        self.start_horizontal_move(start, goal)
                 # acestock with value 13 => cardholder
-                elif isinstance(obj2, Holder) and obj2.status == 'cardholder': 
-                    if obj1.value == 13:
-                        obj1.status = 'card'
-                        self.start_horizontal_move(obj1, obj2)
-            pined_cards = [card for card in self.playing_cards.values() if card.pin]
-            self.remove_pins(pined_cards)
-            
-
-    def update_status(self, card=None):
-        val = card.status if card.status == 'jocker' else card.value
-        if val == 13 or not self.selected:
-            status = val
-        elif len(self.selected) == 1:
-            try:
-                text = self.status_text.get()
-                status = '{} + {} = {}'.format(text, val, int(text) + int(val))
-            except ValueError:
-                status = '{} + {} = {}'.format(text, val, 13)
-        self.status_text.set(status)
+                elif obj2.status == 'cardholder':
+                    if start.value == 13:
+                        start.status = 'card'
+                        self.start_horizontal_move(start, goal)
+            # pined_cards = [card for card in self.playing_cards.values() if card.pin]
+            pined_cards = self.filter(lambda card: card.pin)
+            if pined_cards:
+                self.remove_pins(*pined_cards)
 
 
-    def count_rest_cards(self):
-        cards = [card for card in self.playing_cards.values() if \
-            card.status == 'pyramid' and not card.dele]
-        if not cards:
-            self.after(self.delay, self.finish)
-
+    def update_status(self, items):
+        text = ', '.join(['{} {}'.format(item.mark, item.value) for item \
+            in items if isinstance(item, Card)])
+        self.status_text.set(text)
 
 
 if __name__ == '__main__':
