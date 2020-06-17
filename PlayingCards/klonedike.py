@@ -332,7 +332,6 @@ class Board(BaseBoard):
         self.status_text.set(text)
 
 
-   
 if __name__ == '__main__':
     application = tk.Tk()
     application.title('Pyramid')
