@@ -1,5 +1,3 @@
-# from collections import namedtuple
-
 import os
 import random
 import tkinter as tk
@@ -38,9 +36,7 @@ class Card(BaseCard):
 class Board(BaseBoard):
 
     def __init__(self, master, status_text, delay=400, rows=7):
-        # self.status_text = status_text
         self.rows = rows
-        # self.delay = delay
         self.discard_x = DISCARD_X
         self.discard_y = DISCARD_Y
         self.selected = []
@@ -66,7 +62,8 @@ class Board(BaseBoard):
         self.playing_cards = {} 
         cards = [face for face in self.deck if not face.mark.startswith('jocker')]
         jockers = [face for face in self.deck if face.mark.startswith('jocker')]    
-        limit = int(self.rows * (self.rows+1) / 2) # the number of pyramit cards
+        # the number of pyramit cards
+        limit = int(self.rows * (self.rows+1) / 2)
         self.setup_pyramid(cards[:limit])
         self.setup_stock(cards[limit:])
         self.setup_jocker(jockers)
@@ -86,7 +83,7 @@ class Board(BaseBoard):
         x, y = PYRAMID_X, PYRAMID_Y
         for i, row in enumerate(cards, 1):
             for j, face in enumerate(row, 1):
-                name = template.format(i, j)
+                name = 'pyramid{}{}'.format(i, j)
                 item_id = self.create_image(
                     x, y,
                     image=face.image if i == self.rows else self.back, 
@@ -128,24 +125,26 @@ class Board(BaseBoard):
 
 
     def click(self, event):
-        card = self.playing_cards[self.get_tag(event)]
-        if card.status == 'stock' and card.face_up == False:
-            if not self.now_moving:
+        if not self.now_moving:
+            card = self.playing_cards[self.get_tag(event)]
+            if card.status == 'stock' and not card.face_up:
                 self.start_move(card)
-                self.now_moving = True
-        elif card.face_up:
-            if not card.pin:
-                self.set_pins(card)
-            self.judge(card)
-
+            elif card.face_up:
+                if not card.pin:
+                    self.set_pins(card)
+                    self.judge(card)
+                else:
+                    self.remove_pins(card)
+                    self.selected = []
+    
 
     def start_move(self, card):
-        stock = [card for card in self.playing_cards.values() \
-            if card.status == 'stock' and card.face_up and not card.dele]
+        stocks = [stock for stock in self.playing_cards.values() \
+            if stock.status == 'stock' and stock.face_up and not stock.dele]
         self.destinations = []
         self.move_cards = []
-        if stock:
-            stock = stock[0]  
+        if stocks:
+            stock = stocks[0]  
             stock.x, stock.y = self.discard_x, self.discard_y 
             self.discard_x += STACK_OFFSET
             self.discard_y -= STACK_OFFSET
@@ -157,6 +156,7 @@ class Board(BaseBoard):
         self.move_cards.append(card)
         self.is_moved = False
         self.idx = 0
+        self.now_moving = True
         self.run_move_sequence()
        
 
@@ -165,13 +165,7 @@ class Board(BaseBoard):
             self.move_card(self.move_cards[self.idx].id, self.destinations[self.idx])
             self.after(MOVE_SPEED, self.run_move_sequence)
         else:
-            card = self.move_cards[self.idx]
-            if not card.face_up:
-                self.itemconfig(card.id, image=card.image)
-                card.face_up = True    
-            if card.status == 'discarded':
-                self.coords(card.id, card.x, card.y)
-                self.tag_raise(card.id)
+            self.after_move_sequence(self.move_cards[self.idx])
             self.idx += 1
             if self.idx < len(self.move_cards):
                 self.is_moved = False
@@ -179,34 +173,41 @@ class Board(BaseBoard):
             else:
                 self.now_moving = False
 
-        
-    def pyramid_face_up(self):
-        cards = filter(lambda x: x.right and x.left, self.playing_cards.values())
-        for card in cards:
-            if card.right.dele and card.left.dele:
-                self.itemconfig(card.id, image=card.image)
-                card.face_up = True
+
+    def after_move_sequence(self, card):
+        if not card.face_up:
+            self.turn_card(card, True) 
+        if card.status == 'discarded':
+            self.coords(card.id, card.x, card.y)
+            self.tag_raise(card.id)
 
 
     def judge(self, card):
         self.update_status(card)
-        if card.value == 13:
-            self.after(self.delay, lambda: self.delete_cards(card))
-            self.after(self.delay, self.pyramid_face_up)
-        elif len(self.selected) == 1 and self.selected[0] == card:
-            self.remove_pins(card)
+        self.selected.append(card)
+        if len(self.selected) == 1 and card.value == 13:
+            self.break_foundation(card)    
             self.selected = []
-        else:
-            self.selected.append(card)
-            if len(self.selected) == 2:
-                cards = self.selected[0:]
-                if sum(card.value == 14 for card in self.selected) >= 1 or \
-                        sum(card.value for card in self.selected) == 13:
-                    self.after(self.delay, lambda: self.delete_cards(*cards))
-                    self.after(self.delay, self.pyramid_face_up)
-                else:
-                    self.after(self.delay, lambda: self.remove_pins(*cards))
-                self.selected = []
+        elif len(self.selected) == 2:
+            cards = self.selected[0:]
+            if sum(card.value == 14 for card in self.selected) >= 1 or \
+                    sum(card.value for card in self.selected) == 13:
+                self.break_foundation(*cards)
+            else:
+                self.after(self.delay, lambda: self.remove_pins(*cards))
+            self.selected = []
+
+
+    def break_foundation(self, *cards):
+        self.after(self.delay, lambda: self.delete_cards(*cards))
+        self.after(self.delay, self.pyramid_face_up)
+
+
+    def pyramid_face_up(self):
+        cards = filter(lambda x: x.right and x.left, self.playing_cards.values())
+        for card in cards:
+            if card.right.dele and card.left.dele:
+                self.turn_card(card, True)
 
 
     def update_status(self, card=None):
@@ -222,14 +223,7 @@ class Board(BaseBoard):
         self.status_text.set(status)
 
 
-    def count_rest_cards(self):
-        cards = [card for card in self.playing_cards.values() if \
-            card.status == 'pyramid' and not card.dele]
-        if not cards:
-            self.after(self.delay, self.finish)
-
-
-
+   
 if __name__ == '__main__':
     application = tk.Tk()
     application.title('Pyramid')
