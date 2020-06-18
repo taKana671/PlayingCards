@@ -230,17 +230,20 @@ class Board(BaseBoard):
             self.move_card(self.move_cards[self.idx].col, self.destinations)
             self.after(MOVE_SPEED, self.run_move_sequence)
         else:
-            card = self.move_cards[self.idx]
-            if card.status in {'openedstock', 'stock'}:
-                self.after_stock_moved(card)
-            else:
-                self.after_card_moved(card)
+            self.after_move_sequence(self.move_cards[self.idx])
             self.idx += 1
             if self.idx < len(self.move_cards):
                 self.is_moved = False
                 self.run_move_sequence()
             else:
                 self.now_moving = False
+
+
+    def after_move_sequence(self, card):
+        if card.status in {'openedstock', 'stock'}:
+            self.after_stock_moved(card)
+        else:
+            self.after_card_moved(card)
 
 
     def after_card_moved(self, start):
