@@ -29,6 +29,7 @@ class Board(BaseBoard):
         self.rows = rows
         self.columns = columns
         self.selected = []
+        self.now_moving = False
         super().__init__(master, status_text, delay)
       
 
@@ -52,7 +53,8 @@ class Board(BaseBoard):
             name = os.path.splitext(path)[0]
             mark, value = name.split('_')
             if not mark.startswith('jocker') and value != '10':    
-                yield CardFace(tk.PhotoImage(file=os.path.join(image_path, path)), mark, int(value))
+                yield CardFace(tk.PhotoImage(file=os.path.join(image_path, path)), 
+                    mark, int(value))
 
 
     def setup_cards(self, cards):
@@ -80,24 +82,26 @@ class Board(BaseBoard):
 
 
     def click(self, event):
-        card = self.playing_cards[self.get_tag(event)]
-        if card.face_up:
-            if not card.pin:
-                self.set_pins(card)
-            self.judge(card)
-
+        if not self.now_moving:
+            card = self.playing_cards[self.get_tag(event)]
+            if card.face_up:
+                if not card.pin:
+                    self.set_pins(card)
+                    self.judge(card)
+                else:
+                    self.remove_pins(card)
+                    self.selected.remove(card)
 
    
     def judge(self, card):
-        if card in self.selected:
-            self.remove_pins(card)
-            self.selected.remove(card)
-        else:
-            self.selected.append(card)
+        self.selected.append(card)
         self.update_status()
-        same = len(set(card.mark for card in self.selected)) == 1 # all marks the same?
-        court_cards = sum(10 < card.value for card in self.selected) # the number of th court cards
-        number_cards = sum(card.value <= 10 for card in self.selected) # the number of the number cards
+        # all marks the same?
+        same = len(set(card.mark for card in self.selected)) == 1
+        # the number of th court cards
+        court_cards = sum(10 < card.value for card in self.selected)
+        # the number of the number cards
+        number_cards = sum(card.value <= 10 for card in self.selected)
         if not same or (court_cards and number_cards):
             self.undo()
         elif court_cards == 3:
@@ -119,35 +123,32 @@ class Board(BaseBoard):
     def set_new_cards(self):
         cards = sorted(self.selected, key=lambda x: x.order)
         self.selected = []
-
         self.after(self.delay, lambda: self.delete_cards(*cards))
         self.after(self.delay, lambda: self.start_move(cards))
 
 
-    def start_move(self, cards):
-        self.destinations = [(card.x, card.y) for card in cards]
-        self.move_cards = []
+    def start_move(self, selected_cards):
         stocks = [card for card in self.playing_cards.values() if not card.face_up]
-        stocks.sort(key=lambda x: x.id, reverse=True)
-        for i, card in enumerate(cards, 1):
-            if i <= len(stocks):
-                stock = stocks[i-1]
-                stock.x, stock.y, stock.order = card.x, card.y, card.order
-                self.move_cards.append(stock)
+        self.move_cards = sorted(stocks,
+            key=lambda x: x.id, reverse=True)[:len(selected_cards)]
+        self.destinations = []
         if self.move_cards:
-            self.destinatios = self.destinations[:len(self.move_cards)]
+            cnt = len(self.move_cards)
+            for stock, card in zip(self.move_cards, selected_cards[:cnt]):
+                stock.x, stock.y, stock.order = card.x, card.y, card.order
+                self.destinations.append((card.x, card.y))       
             self.is_moved = False
             self.idx = 0
-            self.run_move_sequence()
-
+            self.now_moving = True
+            self.run_move_sequence()     
+       
 
     def run_move_sequence(self):
         if not self.is_moved:
             card = self.move_cards[self.idx]
             if not card.face_up:
-                self.itemconfig(card.id, image=card.image)
+                self.turn_card(card, True)
                 self.tag_raise(card.id)
-                card.face_up = True
             self.move_card(card.id, self.destinations[self.idx])
             self.after(MOVE_SPEED, self.run_move_sequence)
         else:
@@ -155,6 +156,8 @@ class Board(BaseBoard):
             if self.idx < len(self.move_cards):
                 self.is_moved = False
                 self.run_move_sequence()
+            else:
+                self.now_moving = False
 
 
     def update_status(self):
@@ -162,13 +165,7 @@ class Board(BaseBoard):
         self.status_text.set(text)
 
 
-    def count_rest_cards(self):
-        cards = [card for card in self.playing_cards.values() if not card.dele]
-        if not cards:
-            self.after(self.delay, self.finish)
 
-
-    
 if __name__ == '__main__':
     application = tk.Tk()
     application.title('FourLeafClover')
