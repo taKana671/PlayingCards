@@ -129,10 +129,3 @@ class BaseBoard(tk.Canvas):
             card.dele = True
             self.delete(card.id)
         self.remove_pins(*cards)
-        self.count_rest_cards()
-
-
-    def finish(self):
-        self.ribbon = self.get_image(RIBBON)
-        self.create_image(BOARD_WIDTH/2, BOARD_HEIGHT/2, 
-            image=self.ribbon, tags=RIBBON)
