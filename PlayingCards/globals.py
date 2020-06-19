@@ -10,7 +10,6 @@ RULES = 'Rules'
 PIN = 'pin'
 BACK = 'back'
 RELOAD = 'reload'
-RIBBON = 'ribbon'
 PAD = '0.75'
 
 BOARD_WIDTH = 1000
