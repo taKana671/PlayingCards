@@ -5,6 +5,7 @@ import tkinter.ttk as ttk
 import fourleafclover
 import pyramid
 import klonedike
+import rules
 from globals import *
 
 
@@ -21,6 +22,7 @@ class Window(ttk.Frame):
         self.games = {}
         self.images = {}
         self.status_text = tk.StringVar()
+        self.rule = None
 
 
     def create_images(self):
@@ -74,7 +76,7 @@ class Window(ttk.Frame):
 
     def create_help_menu(self):
         helpmenu = tk.Menu(self.menubar, tearoff=0, name='help')
-        helpmenu.add_command(label=RULES, command='',
+        helpmenu.add_command(label=RULES, command=self.Rules,
             compound=tk.LEFT, image=self.images[RULES])
         self.menubar.add_cascade(label="Help", menu=helpmenu)
 
@@ -94,11 +96,20 @@ class Window(ttk.Frame):
         flame.tkraise()
         self.board = board
         self.new_game()
+        if self.rule:
+            self.rule.switch_text(self.board.__module__)
 
 
     def new_game(self):
         self.status_text.set('')
         self.board.new_game()
+
+
+    def Rules(self):
+        if self.rule is None:
+            self.rule = rules.Window(self, self.board.__module__)
+        else:
+            self.rule.deiconify()
 
 
     def close(self, event=None):
