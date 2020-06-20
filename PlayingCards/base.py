@@ -90,7 +90,7 @@ class BaseBoard(tk.Canvas):
 
 
     def move_card(self, item, destination):
-        """item: item specifier (tag or id)"""
+        """item: item specifier, tag or id"""
         dest_x, dest_y = destination
         coords = self.coords(item)
         current_x, current_y = int(coords[0]), int(coords[1])
