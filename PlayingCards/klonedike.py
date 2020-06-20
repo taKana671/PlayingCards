@@ -23,10 +23,18 @@ STACK_OFFSET = 0.3
 RED_COLOR = {'diamond', 'heart'}
 RED = 'red'
 BLACK = 'black'
-FIXED_POSITION = {'aceholder', 'cardholder', 'acestock'}
+CARD = 'card'
+STOCK = 'stock'
+ACEHOLDER = 'aceholder'
+CARDHOLDER = 'cardholder'
+STOCKHOLDER = 'stockholder'
+OPENEDSTOCK = 'openedstock'
+ACESTOCK = 'acestock'
 
 
 class Card(BaseCard):
+
+    __slots__ = ('status', 'order', 'col')
 
     def __init__(self, item_id, face, status, x, y, 
             face_up=False, order=None, col=None):
@@ -45,6 +53,8 @@ class Card(BaseCard):
         
 
 class Holder:
+
+    __slots__ = ('id', 'x', 'y', 'status', 'col')
 
     def __init__(self, item_id, x, y, status='holder', col=None):
         self.id = item_id
@@ -99,19 +109,19 @@ class Board(BaseBoard):
     def setup_holder(self):
         x, y = CARD_X, CARD_Y
         for i in range(1, 8):
-            name = 'cardholder{}'.format(i)
+            name = '{}{}'.format(CARDHOLDER, i)
             item_id = self.create_image(x, y, image=self.holder, tags=name)
-            self.holders[name] = Holder(item_id, x, y, status='cardholder', col='col{}1'.format(i))
+            self.holders[name] = Holder(item_id, x, y, status=CARDHOLDER, col='col{}1'.format(i))
             x += SPACE_X
-        name = 'stockholder'
-        item_id = self.create_image(STOCK_X, STOCK_Y, image=self.holder, tags=name)
-        self.tag_bind(name, '<ButtonPress-1>', self.start_stock_back)
+        # name = 'stockholder'
+        item_id = self.create_image(STOCK_X, STOCK_Y, image=self.holder, tags=STOCKHOLDER)
+        self.tag_bind(STOCKHOLDER, '<ButtonPress-1>', self.start_stock_back)
         x, y = ACEHOLDER_X, ACEHOLDER_Y 
         for i in range(1, 3):
             for j in range(1, 3):
-                name = 'aceholder{}{}'.format(i, j) 
+                name = '{}{}{}'.format(ACEHOLDER, i, j) 
                 item_id = self.create_image(x, y, image=self.holder, tags=name)
-                self.holders[name] = Holder(item_id, x, y, status='aceholder')
+                self.holders[name] = Holder(item_id, x, y, status=ACEHOLDER)
                 x += SPACE_X
             x = ACEHOLDER_X
             y = ACEHOLDER_Y + SPACE_Y
@@ -134,7 +144,7 @@ class Board(BaseBoard):
                     image=face.image if j == len(row) else self.back, 
                     tags= col
                 )
-                card = Card(item_id, face, 'card', x, y, face_up, col=col)
+                card = Card(item_id, face, CARD, x, y, face_up, col=col)
                 self.playing_cards[item_id] = card
                 y += CARD_OFFSET_Y
             x += SPACE_X
@@ -144,9 +154,9 @@ class Board(BaseBoard):
     def setup_stock(self, cards):
         x, y = STOCK_X, STOCK_Y
         for i, face in enumerate(cards, 1):
-            name = 'stock{}1'.format(i)
+            name = '{}{}1'.format(STOCK, i)
             item_id = self.create_image(x, y, image=self.back, tags=name)
-            card = Card(item_id, face, 'stock', x, y, order=i, col=name)
+            card = Card(item_id, face, STOCK, x, y, order=i, col=name)
             self.playing_cards[item_id] = card
             x += STACK_OFFSET
             y -= STACK_OFFSET
@@ -166,13 +176,13 @@ class Board(BaseBoard):
     def click_card(self, event):
         if not self.now_moving:
             card = self.playing_cards[self.get_id(event)]
-            if card.status == 'card' and card.face_up:
+            if card.status == CARD and card.face_up:
                 cards = self.filter(lambda x: x.col == card.col)    
                 if self.check_pins(card.pin, *cards):
                     self.after(self.delay, lambda: self.judge(cards))
-            elif card.status == 'stock' and not card.face_up:
+            elif card.status == STOCK and not card.face_up:
                 self.start_move_stock(card)
-            elif card.status in {'openedstock', 'acestock'}:
+            elif card.status in {OPENEDSTOCK, ACESTOCK}:
                 if self.check_pins(card.pin, card):
                     self.after(self.delay, lambda: self.judge(card))
      
@@ -186,7 +196,7 @@ class Board(BaseBoard):
        
             
     def start_stock_back(self, event):
-        cards = self.filter(lambda card: card.status == 'openedstock')
+        cards = self.filter(lambda card: card.status == OPENEDSTOCK)
         if cards:
             cards.sort(key=lambda x: x.order)
             self.open_stock_x = OPEN_STOCK_X
@@ -208,9 +218,9 @@ class Board(BaseBoard):
 
 
     def start_horizontal_move(self, start, goal):
-        destinations = (goal.x, goal.y) if goal.status in FIXED_POSITION \
+        destinations = (goal.x, goal.y) if goal.status in {ACEHOLDER, CARDHOLDER, ACESTOCK} \
             else (goal.x, goal.y + CARD_OFFSET_Y)
-        self.goal_col = 'acestock{}1'.format(start.id) if start.status == 'acestock' \
+        self.goal_col = '{}{}1'.format(ACESTOCK, start.id) if start.status == ACESTOCK \
             else goal.col
         self.tag_raise(start.col)
         self.move_start([start], destinations)
@@ -240,7 +250,7 @@ class Board(BaseBoard):
 
 
     def after_move_sequence(self, card):
-        if card.status in {'openedstock', 'stock'}:
+        if card.status in {OPENEDSTOCK, STOCK}:
             self.after_stock_moved(card)
         else:
             self.after_card_moved(card)
@@ -263,11 +273,11 @@ class Board(BaseBoard):
 
 
     def after_stock_moved(self, card):
-        if card.status == 'openedstock':
+        if card.status == OPENEDSTOCK:
             self.turn_card(card, False)
-            card.status = 'stock'
+            card.status = STOCK
         else:
-            card.status = 'openedstock' 
+            card.status = OPENEDSTOCK 
         self.coords(card.id, card.x, card.y)
         self.tag_raise(card.id)
 
@@ -286,42 +296,42 @@ class Board(BaseBoard):
                     if goal.value - 1 == start.value and goal.color != start.color:
                         self.start_horizontal_move(start, goal)
                 # card with value 13 or 1 => cardholder or aceholder
-                elif (start.value == 13 and goal.status == 'cardholder') \
-                        or (start.value == 1 and goal.status == 'aceholder'):
-                    if goal.status == 'aceholder':
-                        start.status = 'acestock'
+                elif (start.value == 13 and goal.status == CARDHOLDER) \
+                        or (start.value == 1 and goal.status == ACEHOLDER):
+                    if goal.status == ACEHOLDER:
+                        start.status = ACESTOCK
                     self.start_horizontal_move(start, goal)
                 # list => onto acestock 
-                elif obj2.status == 'acestock' and len(obj1) == 1:
+                elif obj2.status == ACESTOCK and len(obj1) == 1:
                     if start.value - 1 == goal.value and start.mark == goal.mark:
-                        start.status = 'acestock'
+                        start.status = ACESTOCK
                         self.start_horizontal_move(start, goal)
-            elif isinstance(obj1, Card) and obj1.status == 'openedstock':
+            elif isinstance(obj1, Card) and obj1.status == OPENEDSTOCK:
                 # openedstock => card
                 if isinstance(obj2, list):
                     if goal.value - 1 == start.value and goal.color != start.color:
-                        start.status = 'card'
+                        start.status = CARD
                         self.start_horizontal_move(start, goal)
                 # openedstock with value 13 or 1 => cardholder or aceholder
-                elif (start.value == 13 and goal.status == 'cardholder') \
-                        or (start.value == 1 and goal.status == 'aceholder'):
-                    start.status = 'card' if goal.status == 'cardholder' else 'acestock'
+                elif (start.value == 13 and goal.status == CARDHOLDER) \
+                        or (start.value == 1 and goal.status == ACEHOLDER):
+                    start.status = CARD if goal.status == CARDHOLDER else ACESTOCK
                     self.start_horizontal_move(start, goal)
                 # openedstock => onto acestock
-                elif isinstance(obj2, Card) and obj2.status == 'acestock':
+                elif isinstance(obj2, Card) and obj2.status == ACESTOCK:
                     if start.value - 1 == goal.value and start.mark == goal.mark:
-                        start.status = 'acestock'
+                        start.status = ACESTOCK
                         self.start_horizontal_move(start, goal)
-            elif isinstance(obj1, Card) and obj1.status == 'acestock':
+            elif isinstance(obj1, Card) and obj1.status == ACESTOCK:
                 # acestock => card
                 if isinstance(obj2, list):
                     if goal.value - 1 == start.value and goal.color != start.color:
-                        start.status = 'card'
+                        start.status = CARD
                         self.start_horizontal_move(start, goal)
                 # acestock with value 13 => cardholder
-                elif obj2.status == 'cardholder':
+                elif obj2.status == CARDHOLDER:
                     if start.value == 13:
-                        start.status = 'card'
+                        start.status = CARD
                         self.start_horizontal_move(start, goal)
             pined_cards = self.filter(lambda card: card.pin)
             if pined_cards:
@@ -335,13 +345,12 @@ class Board(BaseBoard):
 
 
    
-if __name__ == '__main__':
-    application = tk.Tk()
-    application.title('Pyramid')
-    score_text = tk.StringVar()
-    # board = Board(application, print, score)
-    board = Board(application, score_text)
-    application.mainloop()
+# if __name__ == '__main__':
+#     application = tk.Tk()
+#     application.title('Pyramid')
+#     score_text = tk.StringVar()
+#     board = Board(application, score_text)
+#     application.mainloop()
 
 
  
