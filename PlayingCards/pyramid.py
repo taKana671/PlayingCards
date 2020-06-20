@@ -21,9 +21,14 @@ OPEN_STOCK_Y = STOCK_Y
 DISCARD_TEMP_X = OPEN_STOCK_X - 300
 DISCARD_X = int(BOARD_WIDTH/4)
 DISCARD_Y = STOCK_Y
+DISCARDED = 'discarded'
+JOCKER = 'jocker'
+STOCK = 'stock'
 
 
 class Card(BaseCard):
+
+    __slots__ = ('status', 'left', 'right')
 
     def __init__(self, item_id, face, status, x, y, 
             face_up=False, left=None, right=None):
@@ -60,8 +65,8 @@ class Board(BaseBoard):
         self.config(width=BOARD_WIDTH, height=BOARD_HEIGHT)
         random.shuffle(self.deck)
         self.playing_cards = {} 
-        cards = [face for face in self.deck if not face.mark.startswith('jocker')]
-        jockers = [face for face in self.deck if face.mark.startswith('jocker')]    
+        cards = [face for face in self.deck if not face.mark.startswith(JOCKER)]
+        jockers = [face for face in self.deck if face.mark.startswith(JOCKER)]    
         # the number of pyramit cards
         limit = int(self.rows * (self.rows+1) / 2)
         self.setup_pyramid(cards[:limit])
@@ -83,7 +88,7 @@ class Board(BaseBoard):
         x, y = PYRAMID_X, PYRAMID_Y
         for i, row in enumerate(cards, 1):
             for j, face in enumerate(row, 1):
-                name = 'pyramid{}{}'.format(i, j)
+                name = template.format(i, j)
                 item_id = self.create_image(
                     x, y,
                     image=face.image if i == self.rows else self.back, 
@@ -106,9 +111,9 @@ class Board(BaseBoard):
     def setup_stock(self, cards):
         x, y = STOCK_X, STOCK_Y
         for i, face in enumerate(cards):
-            name = 'stock{}'.format(i)
+            name = '{}{}'.format(STOCK, i)
             item_id = self.create_image(x, y, image=self.back, tags=name)
-            card = Card(item_id, face, 'stock', x, y)
+            card = Card(item_id, face, STOCK, x, y)
             self.playing_cards[name] = card
             x += STACK_OFFSET
             y -= STACK_OFFSET
@@ -117,9 +122,9 @@ class Board(BaseBoard):
     def setup_jocker(self, jockers):
         x, y = JOCKER_X, JOCKER_Y
         for i, face in enumerate(jockers):
-            name = 'jocker{}'.format(i)
+            name = '{}{}'.format(JOCKER, i)
             item_id = self.create_image(x, y, image=face.image, tags=name)
-            card = Card(item_id, face, 'jocker', x, y, True)
+            card = Card(item_id, face, JOCKER, x, y, True)
             self.playing_cards[name] = card
             x += SPACE
 
@@ -127,7 +132,7 @@ class Board(BaseBoard):
     def click(self, event):
         if not self.now_moving:
             card = self.playing_cards[self.get_tag(event)]
-            if card.status == 'stock' and not card.face_up:
+            if card.status == STOCK and not card.face_up:
                 self.start_move(card)
             elif card.face_up:
                 if not card.pin:
@@ -140,7 +145,7 @@ class Board(BaseBoard):
 
     def start_move(self, card):
         stocks = [stock for stock in self.playing_cards.values() \
-            if stock.status == 'stock' and stock.face_up and not stock.dele]
+            if stock.status == STOCK and stock.face_up and not stock.dele]
         self.destinations = []
         self.move_cards = []
         if stocks:
@@ -148,7 +153,7 @@ class Board(BaseBoard):
             stock.x, stock.y = self.discard_x, self.discard_y 
             self.discard_x += STACK_OFFSET
             self.discard_y -= STACK_OFFSET
-            stock.status = 'discarded'
+            stock.status = DISCARDED
             self.destinations.append((DISCARD_TEMP_X, OPEN_STOCK_Y))
             self.move_cards.append(stock)
         card.x, card.y = OPEN_STOCK_X, OPEN_STOCK_Y
@@ -177,7 +182,7 @@ class Board(BaseBoard):
     def after_move_sequence(self, card):
         if not card.face_up:
             self.turn_card(card, True) 
-        if card.status == 'discarded':
+        if card.status == DISCARDED:
             self.coords(card.id, card.x, card.y)
             self.tag_raise(card.id)
 
@@ -211,7 +216,7 @@ class Board(BaseBoard):
 
 
     def update_status(self, card=None):
-        val = card.status if card.status == 'jocker' else card.value
+        val = card.status if card.status == JOCKER else card.value
         if val == 13 or not self.selected:
             status = val
         elif len(self.selected) == 1:
@@ -224,13 +229,13 @@ class Board(BaseBoard):
 
 
    
-if __name__ == '__main__':
-    application = tk.Tk()
-    application.title('Pyramid')
-    score_text = tk.StringVar()
-    # board = Board(application, print, score)
-    board = Board(application, score_text)
-    application.mainloop()
+# if __name__ == '__main__':
+#     application = tk.Tk()
+#     application.title('Pyramid')
+#     score_text = tk.StringVar()
+#     # board = Board(application, print, score)
+#     board = Board(application, score_text)
+#     application.mainloop()
 
 
  
