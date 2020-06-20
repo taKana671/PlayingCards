@@ -18,6 +18,8 @@ STOCK_Y = BOARD_HEIGHT - 100
 
 class Card(BaseCard):
 
+    __slots__ = ('order')
+
     def __init__(self, item_id, face, x, y, face_up=False, order=None):
         super().__init__(item_id, face, x, y, face_up)
         self.order = order
@@ -166,12 +168,12 @@ class Board(BaseBoard):
 
 
 
-if __name__ == '__main__':
-    application = tk.Tk()
-    application.title('FourLeafClover')
-    score_text = tk.StringVar()
-    board = Board(application, score_text)
-    application.mainloop()
+# if __name__ == '__main__':
+#     application = tk.Tk()
+#     application.title('FourLeafClover')
+#     score_text = tk.StringVar()
+#     board = Board(application, score_text)
+#     application.mainloop()
 
 
  
