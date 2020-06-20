@@ -1,3 +1,4 @@
+APP_NAME = 'PlayCards'
 IMAGE_ROOT = 'images'
 CARD_ROOT = 'cards'
 
