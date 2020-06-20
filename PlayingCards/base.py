@@ -10,6 +10,8 @@ CardFace = namedtuple('CardFace', 'image mark value')
 
 class BaseCard:
 
+    __slots__ = ('id', 'face', 'x', 'y', 'face_up', 'dele', 'pin')
+
     def __init__(self, item_id, face, x, y, face_up):
         self.id = item_id
         self.face = face
@@ -45,7 +47,7 @@ class BaseBoard(tk.Canvas):
         self.pin = self.get_image(PIN)
         super().__init__(master, width=BOARD_WIDTH, height=BOARD_HEIGHT, bg=BOARD_COLOR)
         self.pack(fill=tk.BOTH, expand=True)
-        self.new_game()
+        # self.new_game()
 
 
     def new_game(self):
