@@ -76,7 +76,7 @@ class BaseBoard(tk.Canvas):
     def get_tag(self, event):
         item_id = self.find_closest(event.x, event.y)[0]
         tag = self.gettags(item_id)[0]
-        return tag 
+        return tag
 
     
     def get_id(self, event):
