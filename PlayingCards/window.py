@@ -2,6 +2,7 @@ import os
 import tkinter as tk
 import tkinter.ttk as ttk
 
+import couple
 import fourleafclover
 import pyramid
 import klonedike
@@ -28,7 +29,7 @@ class Window(ttk.Frame):
     def create_images(self):
         image_path = os.path.join(os.path.dirname(
             os.path.realpath(__file__)), IMAGE_ROOT)
-        for name in (CLOSE, PYRAMID, RELOAD, CLOVER, RULES, KLONEDIKE):
+        for name in (CLOSE, PYRAMID, RELOAD, CLOVER, RULES, KLONEDIKE, COUPLE):
             self.images[name] = tk.PhotoImage(
                 file=os.path.join(image_path, '{}.png'.format(name)))
 
@@ -45,41 +46,39 @@ class Window(ttk.Frame):
         container.pack(fill=tk.BOTH, expand=True)
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
-        for name, module in zip((PYRAMID, CLOVER, KLONEDIKE), 
-                (pyramid, fourleafclover, klonedike)):
-            frame = tk.Frame(container) 
+        for name, module in zip((PYRAMID, CLOVER, KLONEDIKE, COUPLE),
+                                (pyramid, fourleafclover, klonedike, couple)):
+            frame = tk.Frame(container)
             frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
             game = module.Board(frame, self.status_text)
             game.pack(fill=tk.BOTH, expand=True)
             self.games[name] = (frame, game)
-
 
     def create_menubar(self):
         self.menubar = tk.Menu(self.master)
         self.master.config(menu=self.menubar)
         self.create_game_menu()
         self.create_help_menu()
-        
 
     def create_game_menu(self):
         gamemenu = tk.Menu(self.menubar, tearoff=0, name='game')
         gamemenu.add_command(label=PYRAMID, command=lambda: self.change_board(PYRAMID),
-            compound=tk.LEFT, image=self.images[PYRAMID])
+                             compound=tk.LEFT, image=self.images[PYRAMID])
         gamemenu.add_command(label=CLOVER, command=lambda: self.change_board(CLOVER),
-            compound=tk.LEFT, image=self.images[CLOVER])
+                             compound=tk.LEFT, image=self.images[CLOVER])
         gamemenu.add_command(label=KLONEDIKE, command=lambda: self.change_board(KLONEDIKE),
-            compound=tk.LEFT, image=self.images[KLONEDIKE])
+                             compound=tk.LEFT, image=self.images[KLONEDIKE])
+        gamemenu.add_command(label=COUPLE, command=lambda: self.change_board(COUPLE),
+                             compound=tk.LEFT, image=self.images[COUPLE])
         gamemenu.add_command(label=CLOSE, command=self.close,
-            compound=tk.LEFT, image=self.images[CLOSE])
+                             compound=tk.LEFT, image=self.images[CLOSE])
         self.menubar.add_cascade(label="Game", menu=gamemenu)
-
 
     def create_help_menu(self):
         helpmenu = tk.Menu(self.menubar, tearoff=0, name='help')
         helpmenu.add_command(label=RULES, command=self.Rules,
             compound=tk.LEFT, image=self.images[RULES])
         self.menubar.add_cascade(label="Help", menu=helpmenu)
-
 
     def create_statusbar(self):
         statusbar = ttk.Frame(self.master)
@@ -88,8 +87,7 @@ class Window(ttk.Frame):
         status_label = ttk.Label(statusbar, textvariable=self.status_text, font=('', 20))
         status_label.pack(side=tk.LEFT)
         statusbar.columnconfigure(0, weight=1)
-        statusbar.pack(side=tk.BOTTOM, fill=tk.X)
-        
+        statusbar.pack(side=tk.BOTTOM, fill=tk.X)       
 
     def change_board(self, board_name):
         flame, board = self.games[board_name]
@@ -99,18 +97,15 @@ class Window(ttk.Frame):
         if self.rule:
             self.rule.switch_text(self.board.__module__)
 
-
     def new_game(self):
         self.status_text.set('')
         self.board.new_game()
-
 
     def Rules(self):
         if self.rule is None:
             self.rule = rules.Window(self, self.board.__module__)
         else:
             self.rule.deiconify()
-
 
     def close(self, event=None):
         self.quit()
