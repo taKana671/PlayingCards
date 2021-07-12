@@ -16,6 +16,10 @@ STOCK_X = BOARD_WIDTH - 150
 STOCK_Y = BOARD_HEIGHT - 100
 
 
+MoveCard = namedtuple('MoveCard', ['card', 'dest_x', 'dest_y'])
+
+
+
 class Card(BaseCard):
 
     __slots__ = ('order')
@@ -45,7 +49,7 @@ class Board(BaseBoard):
         self.set_stock_cards(self.deck[12:])
         for name in self.playing_cards.keys():
             self.tag_bind(name, '<ButtonPress-1>', self.click)
-        self.faceup_cards = [card for card in self.playing_cards.values() if card.face_up]
+        self.faceup_cards = [card for name, card in self.playing_cards.items() if name.startswith('card')]
 
     def create_card(self):
         image_path = os.path.join(os.path.dirname(
@@ -105,24 +109,42 @@ class Board(BaseBoard):
             else:
                 self.put_stock_card(card)
 
+    def rearange_cards(self):
+        self.col_position, self.row_position = 0, 0
+        for i, card in enumerate(self.faceup_cards):
+            if i % 4 == 0:
+                self.row_position += CARD_OFFSET_Y
+                self.col_position = CARD_X
+            else:
+                self.col_position += SPACE
+            if i != card.order:
+                card.order = i
+                yield MoveCard(card, self.col_position, self.row_position)
+
+
+
+    
+    
+    
     def judge(self, card):
         self.selected.append(card)
         if len(self.selected) == 2:
             if len(set(card.value for card in self.selected)) == 1:
-                idx1, idx2 = [self.faceup_cards.index(card) for card in self.selected]
-                if idx2 in {idx1 - 4, idx1 + 4, idx1 - 1, idx1 + 1, idx1 - 5, idx1 + 5, idx1 - 3, idx1 + 3}:
+                card1, card2 = self.selected
+                if card2.order in {card1.order - 4, card1.order + 4, card1.order - 1, card1.order + 1,
+                                   card1.order - 5, card1.order + 5, card1.order - 3, card1.order + 3}:
                     self.faceup_cards = [card for card in self.faceup_cards if card not in self.selected]
                     remove_cards = self.selected[0:]
                     self.after(self.delay, lambda: self.remove_pins(*remove_cards))
                     self.after(self.delay, lambda: self.delete_cards(*remove_cards))
                     # self.after(self.delay, lambda: self.delete_cards(*left_cards))
                     self.selected = []
-                    # left_cards_id = set(card.id for card in left_cards)
-                    # import pdb; pdb.set_trace()
-                    self.after(self.delay, lambda: self.set_cards(self.faceup_cards))
+                    if move_cards := [card for card in self.rearange_cards()]:
+                        self.after(self.delay, lambda: self.start_move(*move_cards))
             else:
                 self.after(self.delay, lambda: self.remove_pins(*self.selected))
                 self.selected = []
+
 
 
 
@@ -154,24 +176,25 @@ class Board(BaseBoard):
     #     self.after(self.delay, lambda: self.remove_pins(*cards))
 
     def put_stock_card(self, card):
-        self.faceup_cards.append(card)
-        self.idx = len(self.faceup_cards) - 1
-        self.after(self.delay, lambda: self.start_move(card))
-
+        # self.faceup_cards.append(card)
+        # self.idx = len(self.faceup_cards) - 1
+        # self.after(self.delay, lambda: self.start_move(card))
+        pass
         # cards = sorted(self.selected, key=lambda x: x.order)
         # self.selected = []
         # self.after(self.delay, lambda: self.delete_cards(*cards))
         # self.after(self.delay, lambda: self.start_move(cards))
 
 
-    def start_move(self, card):
-        if self.idx % 4 == 0:
-            self.row_position += CARD_OFFSET_Y
-            self.col_position = CARD_X
-        else:
-            self.col_position += SPACE
-        card.x, card.y = self.col_position, self.row_position
-        self.destinations = (card.x, card.y)
+    def start_move(self, *cards):
+
+        # if self.idx % 4 == 0:
+        #     self.row_position += CARD_OFFSET_Y
+        #     self.col_position = CARD_X
+        # else:
+        #     self.col_position += SPACE
+        self.move_items = list(cards)
+        self.idx = 0
         self.is_moved = False
         self.now_moving = True
         self.run_move_sequence()
@@ -189,18 +212,28 @@ class Board(BaseBoard):
         #     self.is_moved = False
         #     self.idx = 0
         #     self.now_moving = True
-        #     self.run_move_sequence()     
+        #     self.run_move_sequence()
 
     def run_move_sequence(self):
         if not self.is_moved:
-            card = self.faceup_cards[self.idx]
-            if not card.face_up:
-                self.turn_card(card, True)
-                self.tag_raise(card.id)
-            self.move_card(card.id, self.destinations)
+            item = self.move_items[self.idx]
+            if not item.card.face_up:
+                self.turn_card(item.card, True)
+                self.tag_raise(item.card.id)
+            self.move_card(item.card.id, (item.dest_x, item.dest_y))
             self.after(MOVE_SPEED, self.run_move_sequence)
         else:
-            self.now_moving = False
+            item = self.move_items[self.idx]
+            item.card.x = item.dest_x
+            item.card.y = item.dest_y
+            self.idx += 1
+            if self.idx < len(self.move_items):
+                self.is_moved = False
+                self.run_move_sequence()
+            else:
+                self.now_moving = False
+
+
     #     if not self.is_moved:
     #         card = self.move_cards[self.idx]
     #         if not card.face_up:
