@@ -19,7 +19,6 @@ STOCK_Y = BOARD_HEIGHT - 100
 MoveCard = namedtuple('MoveCard', ['card', 'dest_x', 'dest_y'])
 
 
-
 class Card(BaseCard):
 
     __slots__ = ('order')
@@ -44,7 +43,6 @@ class Board(BaseBoard):
         self.config(width=BOARD_WIDTH, height=BOARD_HEIGHT)
         random.shuffle(self.deck)
         self.playing_cards = {}
-        # sep = self.rows*self.columns
         self.setup_cards(self.deck[:12])
         self.set_stock_cards(self.deck[12:])
         for name in self.playing_cards.keys():
@@ -60,17 +58,6 @@ class Board(BaseBoard):
             if not mark.startswith('jocker'):
                 yield CardFace(tk.PhotoImage(
                     file=os.path.join(image_path, path)), mark, int(value))
-
-    # def set_cards(self, cards):
-    #     self.col_position, self.row_position = 0, 0
-    #     for i, card in enumerate(cards):
-    #         if i % 4 == 0:
-    #             self.row_position += CARD_OFFSET_Y
-    #             self.col_position = CARD_X
-    #         else:
-    #             x += SPACE
-    #         card.x, card.y = self.col_position, self.row_position
-    #         self.moveto(card.id, x, y)
 
     def setup_cards(self, cards):
         self.col_position, self.row_position = 0, 0
@@ -102,12 +89,33 @@ class Board(BaseBoard):
             if card.face_up:
                 if not card.pin:
                     self.set_pins(card)
-                    self.judge(card)
+                    self.selected.append(card)
+                    if len(self.selected) == 2:
+                        self.judge()
                 else:
                     self.remove_pins(card)
                     self.selected.remove(card)
             else:
-                self.put_stock_card(card)
+                self.move_stock_card(card)
+
+    def judge(self):
+        card1, card2 = self.selected
+        self.update_status()
+        same_value = False
+        if len(set(card.value for card in self.selected)) == 1:
+            if card2.order in {card1.order - 4, card1.order + 4, card1.order - 1, card1.order + 1,
+                               card1.order - 5, card1.order + 5, card1.order - 3, card1.order + 3}:
+                same_value = True
+                self.faceup_cards = [card for card in self.faceup_cards if card not in self.selected]
+                remove_cards = self.selected[0:]
+                self.after(self.delay, lambda: self.remove_pins(*remove_cards))
+                self.after(self.delay, lambda: self.delete_cards(*remove_cards))
+                self.selected = []
+                if move_cards := [card for card in self.rearange_cards()]:
+                    self.after(self.delay, lambda: self.start_move(*move_cards))
+        if not same_value:
+            self.after(self.delay, lambda: self.remove_pins(*self.selected))
+        self.selected = []
 
     def rearange_cards(self):
         self.col_position, self.row_position = 0, 0
@@ -121,98 +129,24 @@ class Board(BaseBoard):
                 card.order = i
                 yield MoveCard(card, self.col_position, self.row_position)
 
-
-
-    
-    
-    
-    def judge(self, card):
-        self.selected.append(card)
-        if len(self.selected) == 2:
-            if len(set(card.value for card in self.selected)) == 1:
-                card1, card2 = self.selected
-                if card2.order in {card1.order - 4, card1.order + 4, card1.order - 1, card1.order + 1,
-                                   card1.order - 5, card1.order + 5, card1.order - 3, card1.order + 3}:
-                    self.faceup_cards = [card for card in self.faceup_cards if card not in self.selected]
-                    remove_cards = self.selected[0:]
-                    self.after(self.delay, lambda: self.remove_pins(*remove_cards))
-                    self.after(self.delay, lambda: self.delete_cards(*remove_cards))
-                    # self.after(self.delay, lambda: self.delete_cards(*left_cards))
-                    self.selected = []
-                    if move_cards := [card for card in self.rearange_cards()]:
-                        self.after(self.delay, lambda: self.start_move(*move_cards))
-            else:
-                self.after(self.delay, lambda: self.remove_pins(*self.selected))
-                self.selected = []
-
-
-
-
-
-
-    #     self.selected.append(card)
-    #     self.update_status()
-    #     # all marks the same?
-    #     same = len(set(card.mark for card in self.selected)) == 1
-    #     # the number of th court cards
-    #     court_cards = sum(10 < card.value for card in self.selected)
-    #     # the number of the number cards
-    #     number_cards = sum(card.value <= 10 for card in self.selected)
-    #     if not same or (court_cards and number_cards):
-    #         self.undo()
-    #     elif court_cards == 3:
-    #         self.set_new_cards()
-    #     elif number_cards >= 2:
-    #         total = sum(card.value for card in self.selected)
-    #         if total > 15:
-    #             self.undo()
-    #         elif total == 15:
-    #             self.set_new_cards()
-      
-
-    # def undo(self):
-    #     cards = self.selected[0:]
-    #     self.selected = []
-    #     self.after(self.delay, lambda: self.remove_pins(*cards))
-
-    def put_stock_card(self, card):
-        # self.faceup_cards.append(card)
-        # self.idx = len(self.faceup_cards) - 1
-        # self.after(self.delay, lambda: self.start_move(card))
-        pass
-        # cards = sorted(self.selected, key=lambda x: x.order)
-        # self.selected = []
-        # self.after(self.delay, lambda: self.delete_cards(*cards))
-        # self.after(self.delay, lambda: self.start_move(cards))
-
+    def move_stock_card(self, card):
+        self.faceup_cards.append(card)
+        self.idx = len(self.faceup_cards) - 1
+        card.order = self.idx
+        if self.idx % 4 == 0:
+            self.row_position += CARD_OFFSET_Y
+            self.col_position = CARD_X
+        else:
+            self.col_position += SPACE
+        move_card = MoveCard(card, self.col_position, self.row_position)
+        self.after(self.delay, lambda: self.start_move(move_card))
 
     def start_move(self, *cards):
-
-        # if self.idx % 4 == 0:
-        #     self.row_position += CARD_OFFSET_Y
-        #     self.col_position = CARD_X
-        # else:
-        #     self.col_position += SPACE
-        self.move_items = list(cards)
+        self.move_items = cards
         self.idx = 0
         self.is_moved = False
         self.now_moving = True
         self.run_move_sequence()
-
-
-        # stocks = [card for card in self.playing_cards.values() if not card.face_up]
-        # self.move_cards = sorted(stocks,
-        #     key=lambda x: x.id, reverse=True)[:len(selected_cards)]
-        # self.destinations = []
-        # if self.move_cards:
-        #     cnt = len(self.move_cards)
-        #     for stock, card in zip(self.move_cards, selected_cards[:cnt]):
-        #         stock.x, stock.y, stock.order = card.x, card.y, card.order
-        #         self.destinations.append((card.x, card.y))       
-        #     self.is_moved = False
-        #     self.idx = 0
-        #     self.now_moving = True
-        #     self.run_move_sequence()
 
     def run_move_sequence(self):
         if not self.is_moved:
@@ -233,27 +167,9 @@ class Board(BaseBoard):
             else:
                 self.now_moving = False
 
-
-    #     if not self.is_moved:
-    #         card = self.move_cards[self.idx]
-    #         if not card.face_up:
-    #             self.turn_card(card, True)
-    #             self.tag_raise(card.id)
-    #         self.move_card(card.id, self.destinations[self.idx])
-    #         self.after(MOVE_SPEED, self.run_move_sequence)
-    #     else:
-    #         self.idx += 1
-    #         if self.idx < len(self.move_cards):
-    #             self.is_moved = False
-    #             self.run_move_sequence()
-    #         else:
-    #             self.now_moving = False
-
-
-    # def update_status(self):
-    #     text = ', '.join(['{} {}'.format(card.mark, card.value) for card in self.selected])
-    #     self.status_text.set(text)
-
+    def update_status(self):
+        text = ', '.join([f'{card.mark} {card.value}' for card in self.selected])
+        self.status_text.set(text)
 
 
 if __name__ == '__main__':
