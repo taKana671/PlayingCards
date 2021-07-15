@@ -4,10 +4,11 @@ import tkinter.ttk as ttk
 
 import couple
 import fourleafclover
-import pyramid
 import klonedike
+import pyramid
 import rules
-from globals import *
+from globals import (PAD, IMAGE_ROOT, CLOSE, PYRAMID, RELOAD, CLOVER, RULES,
+    KLONEDIKE, COUPLE)
 
 
 class Window(ttk.Frame):
@@ -18,13 +19,11 @@ class Window(ttk.Frame):
         self.create_images()
         self.create_ui()
 
-
     def create_variables(self):
         self.games = {}
         self.images = {}
         self.status_text = tk.StringVar()
         self.rule = None
-
 
     def create_images(self):
         image_path = os.path.join(os.path.dirname(
@@ -33,13 +32,11 @@ class Window(ttk.Frame):
             self.images[name] = tk.PhotoImage(
                 file=os.path.join(image_path, '{}.png'.format(name)))
 
-
     def create_ui(self):
         self.create_board()
         self.create_menubar()
         self.create_statusbar()
         self.change_board(PYRAMID)
-
 
     def create_board(self):
         container = tk.Frame(self.master)
@@ -76,8 +73,8 @@ class Window(ttk.Frame):
 
     def create_help_menu(self):
         helpmenu = tk.Menu(self.menubar, tearoff=0, name='help')
-        helpmenu.add_command(label=RULES, command=self.Rules,
-            compound=tk.LEFT, image=self.images[RULES])
+        helpmenu.add_command(
+            label=RULES, command=self.show_rules, compound=tk.LEFT, image=self.images[RULES])
         self.menubar.add_cascade(label="Help", menu=helpmenu)
 
     def create_statusbar(self):
@@ -87,7 +84,7 @@ class Window(ttk.Frame):
         status_label = ttk.Label(statusbar, textvariable=self.status_text, font=('', 20))
         status_label.pack(side=tk.LEFT)
         statusbar.columnconfigure(0, weight=1)
-        statusbar.pack(side=tk.BOTTOM, fill=tk.X)       
+        statusbar.pack(side=tk.BOTTOM, fill=tk.X)
 
     def change_board(self, board_name):
         flame, board = self.games[board_name]
@@ -101,7 +98,7 @@ class Window(ttk.Frame):
         self.status_text.set('')
         self.board.new_game()
 
-    def Rules(self):
+    def show_rules(self):
         if self.rule is None:
             self.rule = rules.Window(self, self.board.__module__)
         else:
@@ -109,7 +106,6 @@ class Window(ttk.Frame):
 
     def close(self, event=None):
         self.quit()
-
 
 
 if __name__ == '__main__':
