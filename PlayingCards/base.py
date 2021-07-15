@@ -2,7 +2,7 @@ import os
 import tkinter as tk
 from collections import namedtuple
 
-from globals import (BACK, PIN, BOARD_HEIGHT, BOARD_WIDTH, BOARD_COLOR
+from globals import (BACK, PIN, BOARD_HEIGHT, BOARD_WIDTH, BOARD_COLOR,
     IMAGE_ROOT, PIN_OFFSET_X, PIN_OFFSET_y)
 
 
