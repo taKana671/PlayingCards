@@ -4,8 +4,8 @@ sys.path.append(os.path.abspath(os.path.join(
     os.path.dirname(__file__), '..')))
 import tkinter as tk
 
-from globals import APP_NAME
 import window
+from globals import APP_NAME
 
 
 def main():

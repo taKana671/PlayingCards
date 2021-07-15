@@ -1,8 +1,9 @@
-from collections import namedtuple
 import os
 import tkinter as tk
+from collections import namedtuple
 
-from globals import *
+from globals import (BACK, PIN, BOARD_HEIGHT, BOARD_WIDTH, BOARD_COLOR
+    IMAGE_ROOT, PIN_OFFSET_X, PIN_OFFSET_y)
 
 
 CardFace = namedtuple('CardFace', 'image mark value')
@@ -20,17 +21,14 @@ class BaseCard:
         self.face_up = face_up
         self.dele = False
         self.pin = None
-        
 
     @property
     def value(self):
         return self.face.value
 
-    
     @property
     def mark(self):
         return self.face.mark
-
 
     @property
     def image(self):
@@ -49,45 +47,38 @@ class BaseBoard(tk.Canvas):
         self.pack(fill=tk.BOTH, expand=True)
         # self.new_game()
 
-
     def new_game(self):
         """
-        Override this method in subclasses to 
+        Override this method in subclasses to
         create instance of BaseCard subclasses.
         """
         raise NotImplementedError()
 
-
     def create_card(self):
         """
-        Override this method in subclasses to 
+        Override this method in subclasses to
         yield CardFace instance.
         """
         raise NotImplementedError()
-
 
     def get_image(self, file):
         image_path = os.path.join(os.path.dirname(
             os.path.realpath(__file__)), IMAGE_ROOT)
         return tk.PhotoImage(
-                file=os.path.join(image_path, '{}.png'.format(file)))
-
+            file=os.path.join(image_path, '{}.png'.format(file)))
 
     def get_tag(self, event):
         item_id = self.find_closest(event.x, event.y)[0]
         tag = self.gettags(item_id)[0]
-        return tag 
+        return tag
 
-    
     def get_id(self, event):
         return self.find_closest(event.x, event.y)[0]
-
 
     def turn_card(self, card, face_up):
         image = card.image if face_up else self.back
         self.itemconfig(card.id, image=image)
         card.face_up = face_up
-
 
     def move_card(self, item, destination):
         """item: item specifier, tag or id"""
@@ -108,23 +99,20 @@ class BaseBoard(tk.Canvas):
         if (current_x, current_y) == (dest_x, dest_y):
             self.is_moved = True
 
-
     def set_pins(self, *cards):
         for card in cards:
             item_id = self.create_image(
-                card.x + PIN_OFFSET_X, 
-                card.y - PIN_OFFSET_y, 
-                image=self.pin, 
+                card.x + PIN_OFFSET_X,
+                card.y - PIN_OFFSET_y,
+                image=self.pin,
                 tags='pin{}'.format(card.id)
             )
             card.pin = item_id
-        
-    
+
     def remove_pins(self, *cards):
         for card in cards:
             self.delete(card.pin)
             card.pin = None
-       
 
     def delete_cards(self, *cards):
         for card in cards:

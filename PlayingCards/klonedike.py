@@ -3,14 +3,14 @@ import random
 import tkinter as tk
 
 from base import BaseBoard, BaseCard, CardFace
-from globals import *
+from globals import BOARD_WIDTH, BOARD_HEIGHT, CARD_ROOT, MOVE_SPEED
 
 
 CARD_X = 100
 CARD_Y = 100
 CARD_OFFSET_X = 90
 CARD_OFFSET_Y = 30
-SPACE_X =90
+SPACE_X = 90
 SPACE_Y = 140
 STOCK_X = BOARD_WIDTH - 100
 STOCK_Y = CARD_Y + 50
@@ -36,13 +36,12 @@ class Card(BaseCard):
 
     __slots__ = ('status', 'order', 'col')
 
-    def __init__(self, item_id, face, status, x, y, 
-            face_up=False, order=None, col=None):
+    def __init__(self, item_id, face, status, x, y,
+                 face_up=False, order=None, col=None):
         super().__init__(item_id, face, x, y, face_up)
         self.status = status
         self.order = order
         self.col = col
-       
 
     @property
     def color(self):
@@ -50,7 +49,7 @@ class Card(BaseCard):
             return RED
         else:
             return BLACK
-        
+
 
 class Holder:
 
@@ -76,27 +75,25 @@ class Board(BaseBoard):
         self.now_moving = False
         self.holder = self.get_image('holder')
         super().__init__(master, status_text, delay)
-        
-      
+
     def create_card(self):
         image_path = os.path.join(os.path.dirname(
             os.path.realpath(__file__)), CARD_ROOT)
         for path in os.listdir(image_path):
             name = os.path.splitext(path)[0]
             mark, value = name.split('_')
-            if not mark.startswith('jocker'):  
+            if not mark.startswith('jocker'):
                 yield CardFace(tk.PhotoImage(
                     file=os.path.join(image_path, path)), mark, int(value))
 
-
     def new_game(self):
         self.delete('all')
-        self.playing_cards = {} 
+        self.playing_cards = {}
         self.holders = {}
-        # config() changes attributes after creating object. 
+        # config() changes attributes after creating object.
         self.config(width=BOARD_WIDTH, height=BOARD_HEIGHT)
         random.shuffle(self.deck)
-        limit = int(self.rows * (self.rows+1) / 2) # the number of klondike cards
+        limit = int(self.rows * (self.rows + 1) / 2)  # the number of klondike cards
         self.setup_holder()
         self.setup_cards(self.deck[:limit])
         self.setup_stock(self.deck[limit:])
@@ -104,7 +101,6 @@ class Board(BaseBoard):
             self.tag_bind(card.id, '<ButtonPress-1>', self.click_card)
         for holder in self.holders.values():
             self.tag_bind(holder.id, '<ButtonPress-1>', self.click_holder)
-
 
     def setup_holder(self):
         x, y = CARD_X, CARD_Y
@@ -116,40 +112,35 @@ class Board(BaseBoard):
         # name = 'stockholder'
         item_id = self.create_image(STOCK_X, STOCK_Y, image=self.holder, tags=STOCKHOLDER)
         self.tag_bind(STOCKHOLDER, '<ButtonPress-1>', self.start_stock_back)
-        x, y = ACEHOLDER_X, ACEHOLDER_Y 
+        x, y = ACEHOLDER_X, ACEHOLDER_Y
         for i in range(1, 3):
             for j in range(1, 3):
-                name = '{}{}{}'.format(ACEHOLDER, i, j) 
+                name = '{}{}{}'.format(ACEHOLDER, i, j)
                 item_id = self.create_image(x, y, image=self.holder, tags=name)
                 self.holders[name] = Holder(item_id, x, y, status=ACEHOLDER)
                 x += SPACE_X
             x = ACEHOLDER_X
             y = ACEHOLDER_Y + SPACE_Y
 
-
     def setup_cards(self, klondike_cards):
         # make array as [[1 element], [2 elements], [3 elements],...]
         start = 0
         cards = []
-        for i in range(1, self.rows+1):
+        for i in range(1, self.rows + 1):
             cards.append(klondike_cards[start:start + i])
             start = start + i
         x, y = CARD_X, CARD_Y
         for i, row in enumerate(cards, 1):
             for j, face in enumerate(row, 1):
-                face_up = True if j ==len(row) else False
+                face_up = True if j == len(row) else False
                 col = 'col{}{}'.format(i, int(face_up))
                 item_id = self.create_image(
-                    x, y,
-                    image=face.image if j == len(row) else self.back, 
-                    tags= col
-                )
+                    x, y, image=face.image if j == len(row) else self.back, tags=col)
                 card = Card(item_id, face, CARD, x, y, face_up, col=col)
                 self.playing_cards[item_id] = card
                 y += CARD_OFFSET_Y
             x += SPACE_X
             y = CARD_Y
-        
 
     def setup_stock(self, cards):
         x, y = STOCK_X, STOCK_Y
@@ -161,23 +152,20 @@ class Board(BaseBoard):
             x += STACK_OFFSET
             y -= STACK_OFFSET
 
-
     def filter(self, func):
         cards = [card for card in self.playing_cards.values() if func(card)]
         return cards
 
-
     def click_holder(self, event):
-        if not self.now_moving:        
+        if not self.now_moving:
             holder = self.holders[self.get_tag(event)]
             self.after(self.delay, lambda: self.judge(holder))
-
 
     def click_card(self, event):
         if not self.now_moving:
             card = self.playing_cards[self.get_id(event)]
             if card.status == CARD and card.face_up:
-                cards = self.filter(lambda x: x.col == card.col)    
+                cards = self.filter(lambda x: x.col == card.col)
                 if self.check_pins(card.pin, *cards):
                     self.after(self.delay, lambda: self.judge(cards))
             elif card.status == STOCK and not card.face_up:
@@ -185,16 +173,14 @@ class Board(BaseBoard):
             elif card.status in {OPENEDSTOCK, ACESTOCK}:
                 if self.check_pins(card.pin, card):
                     self.after(self.delay, lambda: self.judge(card))
-     
-    
+
     def check_pins(self, is_pinned, *cards):
         if not is_pinned:
             self.set_pins(*cards)
             return True
         self.remove_pins(*cards)
         self.selected = []
-       
-            
+
     def start_stock_back(self, event):
         cards = self.filter(lambda card: card.status == OPENEDSTOCK)
         if cards:
@@ -208,14 +194,12 @@ class Board(BaseBoard):
                 y -= STACK_OFFSET
             self.move_start(cards, (OPEN_TEMP_X, STOCK_Y))
 
-
     def start_move_stock(self, card):
         card.x, card.y = self.open_stock_x, self.open_stock_y
         self.turn_card(card, True)
         self.open_stock_x += STACK_OFFSET
         self.open_stock_y -= STACK_OFFSET
         self.move_start([card], (OPEN_TEMP_X, STOCK_Y))
-
 
     def start_horizontal_move(self, start, goal):
         destinations = (goal.x, goal.y) if goal.status in {ACEHOLDER, CARDHOLDER, ACESTOCK} \
@@ -225,7 +209,6 @@ class Board(BaseBoard):
         self.tag_raise(start.col)
         self.move_start([start], destinations)
 
-
     def move_start(self, move_cards, destinations):
         self.move_cards = move_cards
         self.destinations = destinations
@@ -233,7 +216,6 @@ class Board(BaseBoard):
         self.idx = 0
         self.now_moving = True
         self.run_move_sequence()
-
 
     def run_move_sequence(self):
         if not self.is_moved:
@@ -248,13 +230,11 @@ class Board(BaseBoard):
             else:
                 self.now_moving = False
 
-
     def after_move_sequence(self, card):
         if card.status in {OPENEDSTOCK, STOCK}:
             self.after_stock_moved(card)
         else:
             self.after_card_moved(card)
-
 
     def after_card_moved(self, start):
         start_col = start.col
@@ -271,16 +251,14 @@ class Board(BaseBoard):
             new.col = start_col
             self.turn_card(new, True)
 
-
     def after_stock_moved(self, card):
         if card.status == OPENEDSTOCK:
             self.turn_card(card, False)
             card.status = STOCK
         else:
-            card.status = OPENEDSTOCK 
+            card.status = OPENEDSTOCK
         self.coords(card.id, card.x, card.y)
         self.tag_raise(card.id)
-
 
     def judge(self, target):
         self.selected.append(target)
@@ -290,7 +268,7 @@ class Board(BaseBoard):
             goal = max(obj2, key=lambda x: x.y) if isinstance(obj2, list) else obj2
             self.update_status((start, goal))
             self.selected = []
-            if isinstance(obj1, list): 
+            if isinstance(obj1, list):
                 # card  => card
                 if isinstance(obj2, list):
                     if goal.value - 1 == start.value and goal.color != start.color:
@@ -301,7 +279,7 @@ class Board(BaseBoard):
                     if goal.status == ACEHOLDER:
                         start.status = ACESTOCK
                     self.start_horizontal_move(start, goal)
-                # list => onto acestock 
+                # list => onto acestock
                 elif obj2.status == ACESTOCK and len(obj1) == 1:
                     if start.value - 1 == goal.value and start.mark == goal.mark:
                         start.status = ACESTOCK
@@ -337,20 +315,15 @@ class Board(BaseBoard):
             if pined_cards:
                 self.remove_pins(*pined_cards)
 
-
     def update_status(self, items):
-        text = ', '.join(['{} {}'.format(item.mark, item.value) for item \
-            in items if isinstance(item, Card)])
+        text = ', '.join(
+            ['{} {}'.format(item.mark, item.value) for item in items if isinstance(item, Card)])
         self.status_text.set(text)
 
 
-   
 # if __name__ == '__main__':
 #     application = tk.Tk()
 #     application.title('Pyramid')
 #     score_text = tk.StringVar()
 #     board = Board(application, score_text)
 #     application.mainloop()
-
-
- 

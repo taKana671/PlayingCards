@@ -1,18 +1,18 @@
-from collections import namedtuple
 import os
 import random
 import tkinter as tk
+from collections import namedtuple
 
 from base import BaseBoard, BaseCard, CardFace
-from globals import *
+from globals import BOARD_WIDTH, BOARD_HEIGHT, CARD_ROOT, MOVE_SPEED
 
 
-CARD_X = int(BOARD_WIDTH/2) - 150
+CARD_X = int(BOARD_WIDTH / 2) - 150
 CARD_Y = 100
 CARD_OFFSET_Y = 130
 STACK_OFFSET = 0.3
 SPACE = 90
-STOCK_X = BOARD_WIDTH - 150 
+STOCK_X = BOARD_WIDTH - 150
 STOCK_Y = BOARD_HEIGHT - 100
 
 
@@ -33,20 +33,18 @@ class Board(BaseBoard):
         self.selected = []
         self.now_moving = False
         super().__init__(master, status_text, delay)
-      
 
     def new_game(self):
         self.delete('all')
-        # config() changes attributes after creating object. 
+        # config() changes attributes after creating object.
         self.config(width=BOARD_WIDTH, height=BOARD_HEIGHT)
         random.shuffle(self.deck)
-        self.playing_cards = {} 
-        sep = self.rows*self.columns
+        self.playing_cards = {}
+        sep = self.rows * self.columns
         self.setup_cards(self.deck[:sep])
         self.setup_stock(self.deck[sep:])
         for name in self.playing_cards.keys():
             self.tag_bind(name, '<ButtonPress-1>', self.click)
-
 
     def create_card(self):
         image_path = os.path.join(os.path.dirname(
@@ -54,10 +52,9 @@ class Board(BaseBoard):
         for path in os.listdir(image_path):
             name = os.path.splitext(path)[0]
             mark, value = name.split('_')
-            if not mark.startswith('jocker') and value != '10':    
-                yield CardFace(tk.PhotoImage(file=os.path.join(image_path, path)), 
-                    mark, int(value))
-
+            if not mark.startswith('jocker') and value != '10':
+                yield CardFace(tk.PhotoImage(
+                    file=os.path.join(image_path, path)), mark, int(value))
 
     def setup_cards(self, cards):
         x, y = CARD_X, CARD_Y
@@ -71,7 +68,6 @@ class Board(BaseBoard):
                 x = CARD_X
                 y += CARD_OFFSET_Y
 
-
     def setup_stock(self, cards):
         x, y = STOCK_X, STOCK_Y
         for i, face in enumerate(cards):
@@ -81,7 +77,6 @@ class Board(BaseBoard):
             self.playing_cards[name] = card
             x += STACK_OFFSET
             y -= STACK_OFFSET
-
 
     def click(self, event):
         if not self.now_moving:
@@ -94,7 +89,6 @@ class Board(BaseBoard):
                     self.remove_pins(card)
                     self.selected.remove(card)
 
-   
     def judge(self, card):
         self.selected.append(card)
         self.update_status()
@@ -114,13 +108,11 @@ class Board(BaseBoard):
                 self.undo()
             elif total == 15:
                 self.set_new_cards()
-      
 
     def undo(self):
         cards = self.selected[0:]
         self.selected = []
         self.after(self.delay, lambda: self.remove_pins(*cards))
-
 
     def set_new_cards(self):
         cards = sorted(self.selected, key=lambda x: x.order)
@@ -128,22 +120,20 @@ class Board(BaseBoard):
         self.after(self.delay, lambda: self.delete_cards(*cards))
         self.after(self.delay, lambda: self.start_move(cards))
 
-
     def start_move(self, selected_cards):
         stocks = [card for card in self.playing_cards.values() if not card.face_up]
-        self.move_cards = sorted(stocks,
-            key=lambda x: x.id, reverse=True)[:len(selected_cards)]
+        self.move_cards = sorted(
+            stocks, key=lambda x: x.id, reverse=True)[:len(selected_cards)]
         self.destinations = []
         if self.move_cards:
             cnt = len(self.move_cards)
             for stock, card in zip(self.move_cards, selected_cards[:cnt]):
                 stock.x, stock.y, stock.order = card.x, card.y, card.order
-                self.destinations.append((card.x, card.y))       
+                self.destinations.append((card.x, card.y))
             self.is_moved = False
             self.idx = 0
             self.now_moving = True
-            self.run_move_sequence()     
-       
+            self.run_move_sequence()
 
     def run_move_sequence(self):
         if not self.is_moved:
@@ -161,11 +151,9 @@ class Board(BaseBoard):
             else:
                 self.now_moving = False
 
-
     def update_status(self):
         text = ', '.join(['{} {}'.format(card.mark, card.value) for card in self.selected])
         self.status_text.set(text)
-
 
 
 # if __name__ == '__main__':
@@ -174,6 +162,3 @@ class Board(BaseBoard):
 #     score_text = tk.StringVar()
 #     board = Board(application, score_text)
 #     application.mainloop()
-
-
- 

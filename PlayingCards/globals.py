@@ -7,6 +7,7 @@ PYRAMID = 'Pyramid'
 CLOVER = 'FourLeafClover'
 KLONEDIKE = 'Klonedike'
 RULES = 'Rules'
+COUPLE = 'Couple'
 
 PIN = 'pin'
 BACK = 'back'
