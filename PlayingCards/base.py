@@ -43,7 +43,8 @@ class BaseBoard(tk.Canvas):
         self.deck = [face for face in self.create_card()]
         self.back = self.get_image(BACK)
         self.pin = self.get_image(PIN)
-        super().__init__(master, width=BOARD_WIDTH, height=BOARD_HEIGHT, bg=BOARD_COLOR)
+        super().__init__(
+            master, width=BOARD_WIDTH, height=BOARD_HEIGHT, bg=BOARD_COLOR)
         self.pack(fill=tk.BOTH, expand=True)
         # self.new_game()
 

@@ -14,6 +14,7 @@ STACK_OFFSET = 0.3
 SPACE = 90
 STOCK_X = BOARD_WIDTH - 150
 STOCK_Y = BOARD_HEIGHT - 100
+SCROLL_REGION = 2000
 
 
 MoveCard = namedtuple('MoveCard', ['card', 'dest_x', 'dest_y'])
@@ -35,6 +36,8 @@ class Board(BaseBoard):
         self.col_position = 0
         self.selected = []
         self.now_moving = False
+        self.ybar = None
+        self.ybar_pos = 0.0
         super().__init__(master, status_text, delay)
 
     def new_game(self):
@@ -48,6 +51,30 @@ class Board(BaseBoard):
         for name in self.playing_cards.keys():
             self.tag_bind(name, '<ButtonPress-1>', self.click)
         self.faceup_cards = [card for name, card in self.playing_cards.items() if name.startswith('card')]
+        self.create_scrollbar()
+
+    def create_scrollbar(self):
+        if self.ybar is None:
+            self.ybar = tk.Scrollbar(self, orient=tk.VERTICAL)
+            self.ybar.pack(side=tk.RIGHT, fill=tk.Y)
+            self.ybar.config(command=self.yview)
+            self.config(yscrollcommand=self.handle_scroll)
+            self.config(scrollregion=(0, 0, 0, SCROLL_REGION))
+        self.yview_moveto(0)
+
+    def handle_scroll(self, first, last):
+        self.ybar.set(first, last)
+        first = float(first)
+        if first != self.ybar_pos:
+            # the last of the scrollbar means the positin in the scrollregion
+            self.rearange_stock_cards(float(last) * SCROLL_REGION - 100)
+            self.ybar_pos = first
+
+    def get_tag(self, event):
+        ybar_pos, _ = self.ybar.get()
+        item_id = self.find_closest(event.x, event.y + ybar_pos * SCROLL_REGION)[0]
+        tag = self.gettags(item_id)[0]
+        return tag
 
     def create_card(self):
         image_path = os.path.join(os.path.dirname(
@@ -78,7 +105,7 @@ class Board(BaseBoard):
         for i, face in enumerate(cards):
             name = 'stock{}'.format(i)
             item_id = self.create_image(x, y, image=self.back, tags=name)
-            card = Card(item_id, face, x, y)
+            card = Card(item_id, face, x, y, order=i)
             self.playing_cards[name] = card
             x += STACK_OFFSET
             y -= STACK_OFFSET
@@ -116,6 +143,17 @@ class Board(BaseBoard):
         if not same_value:
             self.after(self.delay, lambda: self.remove_pins(*self.selected))
         self.selected = []
+
+    def rearange_stock_cards(self, y):
+        stocks = [card for card in self.playing_cards.values() if not card.face_up]
+        stocks.sort(key=lambda x: x.order)
+        x = STOCK_X
+        for stock in stocks:
+            self.coords(stock.id, x, y)
+            stock.y = y
+            stock.x = x
+            x += STACK_OFFSET
+            y -= STACK_OFFSET
 
     def rearange_cards(self):
         self.col_position, self.row_position = 0, 0
