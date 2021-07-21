@@ -31,14 +31,14 @@ class Card(BaseCard):
 
 class Board(BaseBoard):
 
-    def __init__(self, master, status_text, delay=400, rows=4, columns=4):
+    def __init__(self, master, status_text, sounds, delay=400):
         self.row_position = 0
         self.col_position = 0
         self.selected = []
         self.now_moving = False
         self.ybar = None
         self.ybar_pos = 0.0
-        super().__init__(master, status_text, delay)
+        super().__init__(master, status_text, delay, sounds)
 
     def new_game(self):
         self.delete('all')
@@ -137,11 +137,12 @@ class Board(BaseBoard):
                 remove_cards = self.selected[0:]
                 self.after(self.delay, lambda: self.remove_pins(*remove_cards))
                 self.after(self.delay, lambda: self.delete_cards(*remove_cards))
-                self.selected = []
                 if move_cards := [card for card in self.rearange_cards()]:
-                    self.after(self.delay, lambda: self.start_move(*move_cards))
+                    self.after(self.delay + 200, lambda: self.start_move(*move_cards))
         if not same_value:
-            self.after(self.delay, lambda: self.remove_pins(*self.selected))
+            self.sounds.mistake.play()
+            remove_cards = self.selected[0:]
+            self.after(self.delay, lambda: self.remove_pins(*remove_cards))
         self.selected = []
 
     def rearange_stock_cards(self, y):
@@ -199,6 +200,7 @@ class Board(BaseBoard):
             item.card.x = item.dest_x
             item.card.y = item.dest_y
             self.idx += 1
+            self.sounds.lineup.play()
             if self.idx < len(self.move_items):
                 self.is_moved = False
                 self.run_move_sequence()

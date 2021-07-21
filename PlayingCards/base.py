@@ -37,12 +37,13 @@ class BaseCard:
 
 class BaseBoard(tk.Canvas):
 
-    def __init__(self, master, status_text, delay):
+    def __init__(self, master, status_text, delay, sounds):
         self.status_text = status_text
         self.delay = delay
         self.deck = [face for face in self.create_card()]
         self.back = self.get_image(BACK)
         self.pin = self.get_image(PIN)
+        self.sounds = sounds
         super().__init__(
             master, width=BOARD_WIDTH, height=BOARD_HEIGHT, bg=BOARD_COLOR)
         self.pack(fill=tk.BOTH, expand=True)
@@ -116,6 +117,7 @@ class BaseBoard(tk.Canvas):
             card.pin = None
 
     def delete_cards(self, *cards):
+        self.sounds.disappear.play()
         for card in cards:
             card.dele = True
             self.delete(card.id)

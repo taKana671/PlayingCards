@@ -2,6 +2,8 @@ import os
 import tkinter as tk
 import tkinter.ttk as ttk
 
+import pygame
+
 import couple
 import fourleafclover
 import klonedike
@@ -9,6 +11,21 @@ import pyramid
 import rules
 from globals import (PAD, IMAGE_ROOT, CLOSE, PYRAMID, RELOAD, CLOVER, RULES,
     KLONEDIKE, COUPLE)
+
+
+pygame.init()
+
+
+class Sounds:
+
+    def __init__(self):
+        self.create_sound_effect()
+
+    def create_sound_effect(self):
+        self.disappear = pygame.mixer.Sound('sounds/disappear.wav')
+        self.lineup = pygame.mixer.Sound('sounds/lineup.wav')
+        self.mistake = pygame.mixer.Sound('sounds/mistake.wav')
+        self.shuffle = pygame.mixer.Sound('sounds/shuffle.wav')
 
 
 class Window(ttk.Frame):
@@ -43,11 +60,12 @@ class Window(ttk.Frame):
         container.pack(fill=tk.BOTH, expand=True)
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
+        sounds = Sounds()
         for name, module in zip((PYRAMID, CLOVER, KLONEDIKE, COUPLE),
                                 (pyramid, fourleafclover, klonedike, couple)):
             frame = tk.Frame(container)
             frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-            game = module.Board(frame, self.status_text)
+            game = module.Board(frame, self.status_text, sounds)
             game.pack(fill=tk.BOTH, expand=True)
             self.games[name] = (frame, game)
 

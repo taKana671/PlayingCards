@@ -40,13 +40,13 @@ class Card(BaseCard):
 
 class Board(BaseBoard):
 
-    def __init__(self, master, status_text, delay=400, rows=7):
+    def __init__(self, master, status_text, sounds, delay=400, rows=7):
         self.rows = rows
         self.discard_x = DISCARD_X
         self.discard_y = DISCARD_Y
         self.selected = []
         self.now_moving = False
-        super().__init__(master, status_text, delay)
+        super().__init__(master, status_text, delay, sounds)
 
     def create_card(self):
         image_path = os.path.join(os.path.dirname(

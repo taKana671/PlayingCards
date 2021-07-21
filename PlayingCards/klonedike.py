@@ -65,7 +65,7 @@ class Holder:
 
 class Board(BaseBoard):
 
-    def __init__(self, master, status_text, delay=400, rows=7):
+    def __init__(self, master, status_text, sounds, delay=400, rows=7):
         self.rows = rows
         self.open_stock_x = OPEN_STOCK_X
         self.open_stock_y = OPEN_STOCK_Y
@@ -74,7 +74,7 @@ class Board(BaseBoard):
         self.selected = []
         self.now_moving = False
         self.holder = self.get_image('holder')
-        super().__init__(master, status_text, delay)
+        super().__init__(master, status_text, delay, sounds)
 
     def create_card(self):
         image_path = os.path.join(os.path.dirname(
@@ -192,6 +192,7 @@ class Board(BaseBoard):
                 card.x, card.y = x, y
                 x += STACK_OFFSET
                 y -= STACK_OFFSET
+            self.sounds.shuffle.play()
             self.move_start(cards, (OPEN_TEMP_X, STOCK_Y))
 
     def start_move_stock(self, card):

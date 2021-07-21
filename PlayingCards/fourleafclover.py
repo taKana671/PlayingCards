@@ -27,12 +27,12 @@ class Card(BaseCard):
 
 class Board(BaseBoard):
 
-    def __init__(self, master, status_text, delay=400, rows=4, columns=4):
+    def __init__(self, master, status_text, sounds, delay=400, rows=4, columns=4):
         self.rows = rows
         self.columns = columns
         self.selected = []
         self.now_moving = False
-        super().__init__(master, status_text, delay)
+        super().__init__(master, status_text, delay, sounds)
 
     def new_game(self):
         self.delete('all')
@@ -110,6 +110,7 @@ class Board(BaseBoard):
                 self.set_new_cards()
 
     def undo(self):
+        self.sounds.mistake.play()
         cards = self.selected[0:]
         self.selected = []
         self.after(self.delay, lambda: self.remove_pins(*cards))
@@ -145,6 +146,7 @@ class Board(BaseBoard):
             self.after(MOVE_SPEED, self.run_move_sequence)
         else:
             self.idx += 1
+            self.sounds.lineup.play()
             if self.idx < len(self.move_cards):
                 self.is_moved = False
                 self.run_move_sequence()
