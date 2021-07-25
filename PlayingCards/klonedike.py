@@ -3,7 +3,7 @@ import random
 import tkinter as tk
 
 from base import BaseBoard, BaseCard, CardFace
-from globals import BOARD_WIDTH, BOARD_HEIGHT, CARD_ROOT, MOVE_SPEED
+from Globals import BOARD_WIDTH, BOARD_HEIGHT, CARD_ROOT, MOVE_SPEED
 
 
 CARD_X = 100
@@ -73,6 +73,8 @@ class Board(BaseBoard):
         self.stock_y = STOCK_Y
         self.selected = []
         self.now_moving = False
+        self.is_start_horizontal_move = False
+        self.is_start_stock_back = False
         self.holder = self.get_image('holder')
         super().__init__(master, status_text, delay, sounds)
 
@@ -184,6 +186,7 @@ class Board(BaseBoard):
     def start_stock_back(self, event):
         cards = self.filter(lambda card: card.status == OPENEDSTOCK)
         if cards:
+            self.is_start_stock_back = True
             cards.sort(key=lambda x: x.order)
             self.open_stock_x = OPEN_STOCK_X
             self.open_stock_y = OPEN_STOCK_Y
@@ -203,6 +206,7 @@ class Board(BaseBoard):
         self.move_start([card], (OPEN_TEMP_X, STOCK_Y))
 
     def start_horizontal_move(self, start, goal):
+        self.is_start_horizontal_move = True
         destinations = (goal.x, goal.y) if goal.status in {ACEHOLDER, CARDHOLDER, ACESTOCK} \
             else (goal.x, goal.y + CARD_OFFSET_Y)
         self.goal_col = '{}{}1'.format(ACESTOCK, start.id) if start.status == ACESTOCK \
@@ -225,10 +229,14 @@ class Board(BaseBoard):
         else:
             self.after_move_sequence(self.move_cards[self.idx])
             self.idx += 1
+            if not self.is_start_stock_back:
+                self.sounds.lineup.play()
             if self.idx < len(self.move_cards):
                 self.is_moved = False
                 self.run_move_sequence()
             else:
+                if self.is_start_stock_back:
+                    self.is_start_stock_back = False
                 self.now_moving = False
 
     def after_move_sequence(self, card):
@@ -250,7 +258,11 @@ class Board(BaseBoard):
             new = max(rest_cards, key=lambda x: x.y)
             self.itemconfig(new.id, tag=start_col)
             new.col = start_col
-            self.turn_card(new, True)
+            self.after(self.delay - 200, lambda: self.open_one_card(new))
+
+    def open_one_card(self, card):
+        self.sounds.open.play()
+        self.turn_card(card, True)
 
     def after_stock_moved(self, card):
         if card.status == OPENEDSTOCK:
@@ -264,6 +276,7 @@ class Board(BaseBoard):
     def judge(self, target):
         self.selected.append(target)
         if len(self.selected) == 2:
+            self.is_start_horizontal_move = False
             obj1, obj2 = self.selected[0], self.selected[1]
             start = min(obj1, key=lambda x: x.y) if isinstance(obj1, list) else obj1
             goal = max(obj2, key=lambda x: x.y) if isinstance(obj2, list) else obj2
@@ -312,8 +325,9 @@ class Board(BaseBoard):
                     if start.value == 13:
                         start.status = CARD
                         self.start_horizontal_move(start, goal)
-            pined_cards = self.filter(lambda card: card.pin)
-            if pined_cards:
+            if pined_cards := self.filter(lambda card: card.pin):
+                if not self.is_start_horizontal_move:
+                    self.sounds.mistake.play()
                 self.remove_pins(*pined_cards)
 
     def update_status(self, items):

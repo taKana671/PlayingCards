@@ -2,7 +2,7 @@ import os
 import tkinter as tk
 from collections import namedtuple
 
-from globals import (BACK, PIN, BOARD_HEIGHT, BOARD_WIDTH, BOARD_COLOR,
+from Globals import (BACK, PIN, BOARD_HEIGHT, BOARD_WIDTH, BOARD_COLOR,
     IMAGE_ROOT, PIN_OFFSET_X, PIN_OFFSET_y)
 
 
@@ -110,6 +110,10 @@ class BaseBoard(tk.Canvas):
                 tags='pin{}'.format(card.id)
             )
             card.pin = item_id
+
+    def bad_choices(self, cards):
+        self.sounds.mistake.play()
+        self.remove_pins(*cards)
 
     def remove_pins(self, *cards):
         for card in cards:

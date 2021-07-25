@@ -4,7 +4,7 @@ import random
 import tkinter as tk
 
 from base import BaseBoard, BaseCard, CardFace
-from globals import BOARD_WIDTH, BOARD_HEIGHT, CARD_ROOT, MOVE_SPEED
+from Globals import BOARD_WIDTH, BOARD_HEIGHT, CARD_ROOT, MOVE_SPEED
 
 
 CARD_X = int(BOARD_WIDTH / 2) - 150

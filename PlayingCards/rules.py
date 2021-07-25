@@ -2,7 +2,7 @@ import os
 import tkinter as tk
 import tkinter.ttk as ttk
 
-from globals import BOARD_WIDTH, PYRAMID, CLOVER, KLONEDIKE, COUPLE
+from Globals import BOARD_WIDTH, PYRAMID, CLOVER, KLONEDIKE, COUPLE
 
 
 class Window(tk.Toplevel):

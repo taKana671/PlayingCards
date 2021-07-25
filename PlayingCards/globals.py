@@ -20,3 +20,9 @@ BOARD_COLOR = 'green'
 MOVE_SPEED = 1
 PIN_OFFSET_X = 18
 PIN_OFFSET_y = 30
+
+DISAPPEAR = 'sounds/disappear.wav'
+LINEUP = 'sounds/lineup.wav'
+MISTAKE = 'sounds/mistake.wav'
+SHUFFLE = 'sounds/shuffle.wav'
+OPEN = 'sounds/open.wav'

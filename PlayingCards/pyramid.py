@@ -3,7 +3,7 @@ import random
 import tkinter as tk
 
 from base import BaseBoard, BaseCard, CardFace
-from globals import BOARD_WIDTH, BOARD_HEIGHT, CARD_ROOT, MOVE_SPEED
+from Globals import BOARD_WIDTH, BOARD_HEIGHT, CARD_ROOT, MOVE_SPEED
 
 
 PYRAMID_X = int(BOARD_WIDTH / 2)
@@ -172,6 +172,7 @@ class Board(BaseBoard):
 
     def after_move_sequence(self, card):
         if not card.face_up:
+            self.sounds.open.play()
             self.turn_card(card, True)
         if card.status == DISCARDED:
             self.coords(card.id, card.x, card.y)
@@ -189,17 +190,18 @@ class Board(BaseBoard):
                     sum(card.value for card in self.selected) == 13:
                 self.break_foundation(*cards)
             else:
-                self.after(self.delay, lambda: self.remove_pins(*cards))
+                self.after(self.delay, lambda: self.bad_choices(cards))
             self.selected = []
 
     def break_foundation(self, *cards):
         self.after(self.delay, lambda: self.delete_cards(*cards))
-        self.after(self.delay, self.pyramid_face_up)
+        self.after(self.delay + 200, self.pyramid_face_up)
 
     def pyramid_face_up(self):
         cards = filter(lambda x: x.right and x.left, self.playing_cards.values())
         for card in cards:
-            if card.right.dele and card.left.dele:
+            if card.right.dele and card.left.dele and not card.face_up:
+                self.sounds.open.play()
                 self.turn_card(card, True)
 
     def update_status(self, card=None):

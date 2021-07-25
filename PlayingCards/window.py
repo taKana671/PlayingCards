@@ -9,8 +9,8 @@ import fourleafclover
 import klonedike
 import pyramid
 import rules
-from globals import (PAD, IMAGE_ROOT, CLOSE, PYRAMID, RELOAD, CLOVER, RULES,
-    KLONEDIKE, COUPLE)
+from Globals import (PAD, IMAGE_ROOT, CLOSE, PYRAMID, RELOAD, CLOVER, RULES,
+    KLONEDIKE, COUPLE, DISAPPEAR, LINEUP, MISTAKE, SHUFFLE, OPEN)
 
 
 pygame.init()
@@ -22,11 +22,12 @@ class Sounds:
         self.create_sound_effect()
 
     def create_sound_effect(self):
-        self.disappear = pygame.mixer.Sound('sounds/disappear.wav')
-        self.lineup = pygame.mixer.Sound('sounds/lineup.wav')
-        self.mistake = pygame.mixer.Sound('sounds/mistake.wav')
-        self.shuffle = pygame.mixer.Sound('sounds/shuffle.wav')
-
+        self.disappear = pygame.mixer.Sound(DISAPPEAR)
+        self.lineup = pygame.mixer.Sound(LINEUP)
+        self.mistake = pygame.mixer.Sound(MISTAKE)
+        self.shuffle = pygame.mixer.Sound(SHUFFLE)
+        self.open = pygame.mixer.Sound(OPEN)
+       
 
 class Window(ttk.Frame):
 
