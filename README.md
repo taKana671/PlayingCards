@@ -12,6 +12,7 @@
 
 * Python 3.8
 * tkinter 8.6
+* pygame 2.0.1
 
 # Environment
 
