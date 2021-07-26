@@ -42,8 +42,6 @@ class Board(BaseBoard):
 
     def __init__(self, master, status_text, sounds, delay=400, rows=7):
         self.rows = rows
-        self.discard_x = DISCARD_X
-        self.discard_y = DISCARD_Y
         self.selected = []
         self.now_moving = False
         super().__init__(master, status_text, delay, sounds)
@@ -59,6 +57,8 @@ class Board(BaseBoard):
 
     def new_game(self):
         self.delete('all')
+        self.discard_x = DISCARD_X
+        self.discard_y = DISCARD_Y
         # config() changes attributes after creating object.
         self.config(width=BOARD_WIDTH, height=BOARD_HEIGHT)
         random.shuffle(self.deck)
@@ -137,11 +137,10 @@ class Board(BaseBoard):
                     self.selected = []
 
     def start_move(self, card):
-        stocks = [stock for stock in self.playing_cards.values() \
-            if stock.status == STOCK and stock.face_up and not stock.dele]
         self.destinations = []
         self.move_cards = []
-        if stocks:
+        if stocks := [stock for stock in self.playing_cards.values() \
+                        if stock.status == STOCK and stock.face_up and not stock.dele]:
             stock = stocks[0]
             stock.x, stock.y = self.discard_x, self.discard_y
             self.discard_x += STACK_OFFSET
@@ -215,6 +214,11 @@ class Board(BaseBoard):
             except ValueError:
                 status = '{} + {} = {}'.format(text, val, 13)
         self.status_text.set(status)
+
+    def is_game_end(self):
+        if not len([card for card in self.playing_cards.values() \
+                if card.status[:7] == 'pyramid' and not card.dele]):
+            self.sounds.fanfare.play()
 
 
 # if __name__ == '__main__':

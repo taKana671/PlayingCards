@@ -171,7 +171,8 @@ class Board(BaseBoard):
                 if self.check_pins(card.pin, *cards):
                     self.after(self.delay, lambda: self.judge(cards))
             elif card.status == STOCK and not card.face_up:
-                self.start_move_stock(card)
+                if not [card for card in self.playing_cards.values() if card.status == OPENEDSTOCK and card.pin]:
+                    self.start_move_stock(card)
             elif card.status in {OPENEDSTOCK, ACESTOCK}:
                 if self.check_pins(card.pin, card):
                     self.after(self.delay, lambda: self.judge(card))
@@ -184,8 +185,7 @@ class Board(BaseBoard):
         self.selected = []
 
     def start_stock_back(self, event):
-        cards = self.filter(lambda card: card.status == OPENEDSTOCK)
-        if cards:
+        if cards := self.filter(lambda card: card.status == OPENEDSTOCK):
             self.is_start_stock_back = True
             cards.sort(key=lambda x: x.order)
             self.open_stock_x = OPEN_STOCK_X
@@ -253,8 +253,7 @@ class Board(BaseBoard):
             coords = self.coords(card.id)
             card.x, card.y = int(coords[0]), int(coords[1])
             card.col = self.goal_col
-        rest_cards = self.filter(lambda card: card.col == start_col[:-1] + '0')
-        if rest_cards:
+        if rest_cards := self.filter(lambda card: card.col == start_col[:-1] + '0'):
             new = max(rest_cards, key=lambda x: x.y)
             self.itemconfig(new.id, tag=start_col)
             new.col = start_col

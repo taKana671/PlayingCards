@@ -63,6 +63,9 @@ class BaseBoard(tk.Canvas):
         """
         raise NotImplementedError()
 
+    def is_game_end(self):
+        pass
+
     def get_image(self, file):
         image_path = os.path.join(os.path.dirname(
             os.path.realpath(__file__)), IMAGE_ROOT)
@@ -126,3 +129,4 @@ class BaseBoard(tk.Canvas):
             card.dele = True
             self.delete(card.id)
         self.remove_pins(*cards)
+        self.is_game_end()

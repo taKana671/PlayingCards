@@ -122,10 +122,10 @@ class Board(BaseBoard):
         self.after(self.delay, lambda: self.start_move(cards))
 
     def start_move(self, selected_cards):
+        self.destinations = []
         stocks = [card for card in self.playing_cards.values() if not card.face_up]
         self.move_cards = sorted(
             stocks, key=lambda x: x.id, reverse=True)[:len(selected_cards)]
-        self.destinations = []
         if self.move_cards:
             cnt = len(self.move_cards)
             for stock, card in zip(self.move_cards, selected_cards[:cnt]):

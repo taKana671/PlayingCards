@@ -10,7 +10,7 @@ import klonedike
 import pyramid
 import rules
 from Globals import (PAD, IMAGE_ROOT, CLOSE, PYRAMID, RELOAD, CLOVER, RULES,
-    KLONEDIKE, COUPLE, DISAPPEAR, LINEUP, MISTAKE, SHUFFLE, OPEN)
+    KLONEDIKE, COUPLE, DISAPPEAR, LINEUP, MISTAKE, SHUFFLE, OPEN, CHANGE, FANFARE)
 
 
 pygame.init()
@@ -27,12 +27,15 @@ class Sounds:
         self.mistake = pygame.mixer.Sound(MISTAKE)
         self.shuffle = pygame.mixer.Sound(SHUFFLE)
         self.open = pygame.mixer.Sound(OPEN)
-       
+        self.change = pygame.mixer.Sound(CHANGE)
+        self.fanfare = pygame.mixer.Sound(FANFARE)
+
 
 class Window(ttk.Frame):
 
     def __init__(self, master):
         super().__init__(master, padding=PAD)
+        self.sounds = Sounds()
         self.create_variables()
         self.create_images()
         self.create_ui()
@@ -61,12 +64,12 @@ class Window(ttk.Frame):
         container.pack(fill=tk.BOTH, expand=True)
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
-        sounds = Sounds()
+        # sounds = Sounds()
         for name, module in zip((PYRAMID, CLOVER, KLONEDIKE, COUPLE),
                                 (pyramid, fourleafclover, klonedike, couple)):
             frame = tk.Frame(container)
             frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-            game = module.Board(frame, self.status_text, sounds)
+            game = module.Board(frame, self.status_text, self.sounds)
             game.pack(fill=tk.BOTH, expand=True)
             self.games[name] = (frame, game)
 
@@ -114,6 +117,7 @@ class Window(ttk.Frame):
             self.rule.switch_text(self.board.__module__)
 
     def new_game(self):
+        self.sounds.change.play()
         self.status_text.set('')
         self.board.new_game()
 
