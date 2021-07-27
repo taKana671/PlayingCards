@@ -17,3 +17,11 @@
 # Environment
 
 * Windows10
+
+# Usage
+
+* Double click playcards.pyw or execute a command below on the command line.
+
+ '''
+    >>>python window.py
+ '''
