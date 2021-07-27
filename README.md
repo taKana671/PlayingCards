@@ -22,6 +22,6 @@
 
 * Double click playcards.pyw or execute a command below on the command line.
 
- '''bash
+ ```bash
     >>>python window.py
- '''
+ ```
