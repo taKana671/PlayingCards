@@ -64,7 +64,6 @@ class Window(ttk.Frame):
         container.pack(fill=tk.BOTH, expand=True)
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
-        # sounds = Sounds()
         for name, module in zip((PYRAMID, CLOVER, KLONEDIKE, COUPLE),
                                 (pyramid, fourleafclover, klonedike, couple)):
             frame = tk.Frame(container)

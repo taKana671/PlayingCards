@@ -64,6 +64,9 @@ class BaseBoard(tk.Canvas):
         raise NotImplementedError()
 
     def is_game_end(self):
+        """Override this method in subclasses to sound a fanfare
+           when winning the game.
+        """
         pass
 
     def get_image(self, file):

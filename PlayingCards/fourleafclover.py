@@ -157,6 +157,10 @@ class Board(BaseBoard):
         text = ', '.join(['{} {}'.format(card.mark, card.value) for card in self.selected])
         self.status_text.set(text)
 
+    def is_game_end(self):
+        if not [card for card in self.playing_cards.values() if not card.dele]:
+            self.sounds.fanfare.play()
+
 
 # if __name__ == '__main__':
 #     application = tk.Tk()

@@ -1,7 +1,7 @@
-from collections import namedtuple
 import os
 import random
 import tkinter as tk
+from collections import namedtuple
 
 from base import BaseBoard, BaseCard, CardFace
 from Globals import BOARD_WIDTH, BOARD_HEIGHT, CARD_ROOT, MOVE_SPEED
@@ -210,6 +210,10 @@ class Board(BaseBoard):
     def update_status(self):
         text = ', '.join([f'{card.mark} {card.value}' for card in self.selected])
         self.status_text.set(text)
+
+    def is_game_end(self):
+        if not [card for card in self.playing_cards.values() if not card.dele]:
+            self.sounds.fanfare.play()
 
 
 if __name__ == '__main__':

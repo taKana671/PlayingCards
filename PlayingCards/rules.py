@@ -102,7 +102,6 @@ COUPLE_RULES = """
 
 """
 
-
 rules = {
     PYRAMID.lower(): (PYRAMID, PYRAMID_RULES),
     CLOVER.lower(): ('Four Leaf Clovers', CLOVERS_RULES),
