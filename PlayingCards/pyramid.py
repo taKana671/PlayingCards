@@ -127,7 +127,8 @@ class Board(BaseBoard):
         if not self.now_moving:
             card = self.playing_cards[self.get_tag(event)]
             if card.status == STOCK and not card.face_up:
-                self.start_move(card)
+                if not [card for card in self.playing_cards.values() if card.status == STOCK and card.pin]:
+                    self.start_move(card)
             elif card.face_up:
                 if not card.pin:
                     self.set_pins(card)
@@ -216,8 +217,8 @@ class Board(BaseBoard):
         self.status_text.set(status)
 
     def is_game_end(self):
-        if not len([card for card in self.playing_cards.values() \
-                if card.status[:7] == 'pyramid' and not card.dele]):
+        if not [card for card in self.playing_cards.values() \
+                    if card.status[:7] == 'pyramid' and not card.dele]:
             self.sounds.fanfare.play()
 
 
