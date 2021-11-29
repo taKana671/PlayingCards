@@ -1,4 +1,5 @@
 import os
+import pathlib
 import random
 import tkinter as tk
 
@@ -47,13 +48,13 @@ class Board(BaseBoard):
         super().__init__(master, status_text, delay, sounds)
 
     def create_card(self):
-        image_path = os.path.join(os.path.dirname(
-            os.path.realpath(__file__)), CARD_ROOT)
-        for path in os.listdir(image_path):
-            name = os.path.splitext(path)[0]
+        parent_dir = pathlib.Path(__file__).parent.resolve()
+        image_path = parent_dir / CARD_ROOT
+
+        for path in image_path.iterdir():
+            name = path.stem
             mark, value = name.split('_')
-            yield CardFace(tk.PhotoImage(
-                file=os.path.join(image_path, path)), mark, int(value))
+            yield CardFace(tk.PhotoImage(file=path), mark, int(value))
 
     def new_game(self):
         self.delete('all')
