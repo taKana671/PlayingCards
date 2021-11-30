@@ -1,9 +1,10 @@
 import os
+import pathlib
 import tkinter as tk
 from collections import namedtuple
 
 from Globals import (BACK, PIN, BOARD_HEIGHT, BOARD_WIDTH, BOARD_COLOR,
-    IMAGE_ROOT, PIN_OFFSET_X, PIN_OFFSET_y)
+    IMAGE_ROOT, CARD_ROOT, PIN_OFFSET_X, PIN_OFFSET_y)
 
 
 CardFace = namedtuple('CardFace', 'image mark value')
@@ -38,14 +39,14 @@ class BaseCard:
 class BaseBoard(tk.Canvas):
 
     def __init__(self, master, status_text, delay, sounds):
+        super().__init__(
+            master, width=BOARD_WIDTH, height=BOARD_HEIGHT, bg=BOARD_COLOR)
         self.status_text = status_text
         self.delay = delay
-        self.deck = [face for face in self.create_card()]
+        self.create_folder_path()
         self.back = self.get_image(BACK)
         self.pin = self.get_image(PIN)
         self.sounds = sounds
-        super().__init__(
-            master, width=BOARD_WIDTH, height=BOARD_HEIGHT, bg=BOARD_COLOR)
         self.pack(fill=tk.BOTH, expand=True)
         # self.new_game()
 
@@ -56,24 +57,20 @@ class BaseBoard(tk.Canvas):
         """
         raise NotImplementedError()
 
-    def create_card(self):
-        """
-        Override this method in subclasses to
-        yield CardFace instance.
-        """
-        raise NotImplementedError()
-
     def is_game_end(self):
         """Override this method in subclasses to sound a fanfare
            when winning the game.
         """
         pass
 
+    def create_folder_path(self):
+        parent_dir = pathlib.Path(__file__).parent.resolve()
+        self.cards_dir = parent_dir / CARD_ROOT
+        self.images_dir = parent_dir / IMAGE_ROOT
+
     def get_image(self, file):
-        image_path = os.path.join(os.path.dirname(
-            os.path.realpath(__file__)), IMAGE_ROOT)
-        return tk.PhotoImage(
-            file=os.path.join(image_path, '{}.png'.format(file)))
+        image_path = self.images_dir / f'{file}.png'
+        return tk.PhotoImage(file=image_path)
 
     def get_tag(self, event):
         item_id = self.find_closest(event.x, event.y)[0]
@@ -113,7 +110,7 @@ class BaseBoard(tk.Canvas):
                 card.x + PIN_OFFSET_X,
                 card.y - PIN_OFFSET_y,
                 image=self.pin,
-                tags='pin{}'.format(card.id)
+                tags=f'pin{card.id}'
             )
             card.pin = item_id
 
