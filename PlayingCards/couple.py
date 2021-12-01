@@ -1,9 +1,7 @@
-import os
-import random
 import tkinter as tk
 from collections import namedtuple
 
-from base import BaseBoard, BaseCard, CardFace
+from base import BaseBoard, BaseCard, CardFace, Deck
 from Globals import BOARD_WIDTH, BOARD_HEIGHT, CARD_ROOT, MOVE_SPEED
 
 
@@ -20,26 +18,18 @@ SCROLL_REGION = 2000
 MoveCard = namedtuple('MoveCard', ['card', 'dest_x', 'dest_y'])
 
 
-class Deck:
+class CoupleDeck(Deck):
 
-    def __init__(self, cards_dir):
-        self._deck = [card for card in self.get_cards(cards_dir)]
+    def __init__(self):
+        super().__init__()
+        self._deck = [card for card in self.get_cards()]
 
-    def get_cards(self, cards_dir):
-        for path in cards_dir.iterdir():
+    def get_cards(self):
+        for path in self.cards_dir.iterdir():
             name = path.stem
             mark, value = name.split('_')
             if not mark.startswith('jocker'):
                 yield CardFace(tk.PhotoImage(file=path), mark, int(value))
-
-    def __getitem__(self, position):
-        return self._deck[position]
-
-    def __len__(self):
-        return len(self._deck)
-
-    def shuffle(self):
-        random.shuffle(self._deck)
 
 
 class CardOnBoard(BaseCard):
@@ -61,7 +51,7 @@ class Board(BaseBoard):
         self.now_moving = False
         self.ybar = None
         self.ybar_pos = 0.0
-        self.deck = Deck(self.cards_dir)
+        self.deck = CoupleDeck()
 
     def new_game(self):
         self.delete('all')

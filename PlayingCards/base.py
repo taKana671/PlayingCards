@@ -1,5 +1,6 @@
 import os
 import pathlib
+import random
 import tkinter as tk
 from collections import namedtuple
 
@@ -8,6 +9,22 @@ from Globals import (BACK, PIN, BOARD_HEIGHT, BOARD_WIDTH, BOARD_COLOR,
 
 
 CardFace = namedtuple('CardFace', 'image mark value')
+
+
+class Deck:
+
+    def __init__(self):
+        parent_dir = pathlib.Path(__file__).parent.resolve()
+        self.cards_dir = parent_dir / CARD_ROOT
+
+    def __getitem__(self, position):
+        return self._deck[position]
+
+    def __len__(self):
+        return len(self._deck)
+
+    def shuffle(self):
+        random.shuffle(self._deck)
 
 
 class BaseCard:
@@ -41,9 +58,10 @@ class BaseBoard(tk.Canvas):
     def __init__(self, master, status_text, delay, sounds):
         super().__init__(
             master, width=BOARD_WIDTH, height=BOARD_HEIGHT, bg=BOARD_COLOR)
+        parent_dir = pathlib.Path(__file__).parent.resolve()
+        self.images_dir = parent_dir / IMAGE_ROOT
         self.status_text = status_text
         self.delay = delay
-        self.create_folder_path()
         self.back = self.get_image(BACK)
         self.pin = self.get_image(PIN)
         self.sounds = sounds
@@ -62,11 +80,6 @@ class BaseBoard(tk.Canvas):
            when winning the game.
         """
         pass
-
-    def create_folder_path(self):
-        parent_dir = pathlib.Path(__file__).parent.resolve()
-        self.cards_dir = parent_dir / CARD_ROOT
-        self.images_dir = parent_dir / IMAGE_ROOT
 
     def get_image(self, file):
         image_path = self.images_dir / f'{file}.png'

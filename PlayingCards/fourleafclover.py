@@ -1,9 +1,7 @@
-import os
-import random
 import tkinter as tk
 from collections import namedtuple
 
-from base import BaseBoard, BaseCard, CardFace
+from base import BaseBoard, BaseCard, CardFace, Deck
 from Globals import BOARD_WIDTH, BOARD_HEIGHT, CARD_ROOT, MOVE_SPEED
 
 
@@ -16,26 +14,18 @@ STOCK_X = BOARD_WIDTH - 150
 STOCK_Y = BOARD_HEIGHT - 100
 
 
-class Deck:
+class FourLeafCloverDeck(Deck):
 
-    def __init__(self, cards_dir):
-        self._deck = [card for card in self.get_cards(cards_dir)]
+    def __init__(self):
+        super().__init__()
+        self._deck = [card for card in self.get_cards()]
 
-    def get_cards(self, cards_dir):
-        for path in cards_dir.iterdir():
+    def get_cards(self):
+        for path in self.cards_dir.iterdir():
             name = path.stem
             mark, value = name.split('_')
             if not mark.startswith('jocker') and value != '10':
                 yield CardFace(tk.PhotoImage(file=path), mark, int(value))
-
-    def __getitem__(self, position):
-        return self._deck[position]
-
-    def __len__(self):
-        return len(self._deck)
-
-    def shuffle(self):
-        random.shuffle(self._deck)
 
 
 class CardOnBoard(BaseCard):
@@ -55,7 +45,7 @@ class Board(BaseBoard):
         self.columns = columns
         self.selected = []
         self.now_moving = False
-        self.deck = Deck(self.cards_dir)
+        self.deck = FourLeafCloverDeck()
 
     def new_game(self):
         self.delete('all')

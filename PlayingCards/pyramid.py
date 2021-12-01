@@ -1,8 +1,6 @@
-import os
-import random
 import tkinter as tk
 
-from base import BaseBoard, BaseCard, CardFace
+from base import BaseBoard, BaseCard, CardFace, Deck
 from Globals import BOARD_WIDTH, BOARD_HEIGHT, CARD_ROOT, MOVE_SPEED
 
 
@@ -26,11 +24,11 @@ JOCKER = 'jocker'
 STOCK = 'stock'
 
 
-class Deck:
+class PyramidDeck(Deck):
 
-    def __init__(self, cards_dir):
-        self.cards_dir = cards_dir
-        self._cards = [card for card in self.get_cards() if not card.mark.startswith(JOCKER)]
+    def __init__(self):
+        super().__init__()
+        self._deck = [card for card in self.get_cards() if not card.mark.startswith(JOCKER)]
         self.jockers = [card for card in self.get_cards() if card.mark.startswith(JOCKER)]
 
     def get_cards(self):
@@ -38,15 +36,6 @@ class Deck:
             name = path.stem
             mark, value = name.split('_')
             yield CardFace(tk.PhotoImage(file=path), mark, int(value))
-
-    def __getitem__(self, position):
-        return self._cards[position]
-
-    def __len__(self):
-        return len(self._cards)
-
-    def shuffle(self):
-        random.shuffle(self._cards)
 
 
 class CardOnBoard(BaseCard):
@@ -68,7 +57,7 @@ class Board(BaseBoard):
         self.rows = rows
         self.selected = []
         self.now_moving = False
-        self.deck = Deck(self.cards_dir)
+        self.deck = PyramidDeck()
 
     def new_game(self):
         self.delete('all')
