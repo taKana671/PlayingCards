@@ -1,9 +1,7 @@
-import os
-import random
 import tkinter as tk
 from collections import namedtuple
 
-from base import BaseBoard, BaseCard, CardFace
+from base import BaseBoard, BaseCard, CardFace, Deck
 from Globals import BOARD_WIDTH, BOARD_HEIGHT, CARD_ROOT, MOVE_SPEED
 
 
@@ -20,7 +18,21 @@ SCROLL_REGION = 2000
 MoveCard = namedtuple('MoveCard', ['card', 'dest_x', 'dest_y'])
 
 
-class Card(BaseCard):
+class CoupleDeck(Deck):
+
+    def __init__(self):
+        super().__init__()
+        self._deck = [card for card in self.get_cards()]
+
+    def get_cards(self):
+        for path in self.cards_dir.iterdir():
+            name = path.stem
+            mark, value = name.split('_')
+            if not mark.startswith('jocker'):
+                yield CardFace(tk.PhotoImage(file=path), mark, int(value))
+
+
+class CardOnBoard(BaseCard):
 
     __slots__ = ('order')
 
@@ -32,19 +44,20 @@ class Card(BaseCard):
 class Board(BaseBoard):
 
     def __init__(self, master, status_text, sounds, delay=400):
+        super().__init__(master, status_text, delay, sounds)
         self.row_position = 0
         self.col_position = 0
         self.selected = []
         self.now_moving = False
         self.ybar = None
         self.ybar_pos = 0.0
-        super().__init__(master, status_text, delay, sounds)
+        self.deck = CoupleDeck()
 
     def new_game(self):
         self.delete('all')
         # config() changes attributes after creating object.
         self.config(width=BOARD_WIDTH, height=BOARD_HEIGHT)
-        random.shuffle(self.deck)
+        self.deck.shuffle()
         self.playing_cards = {}
         self.setup_cards(self.deck[:12])
         self.set_stock_cards(self.deck[12:])
@@ -76,16 +89,6 @@ class Board(BaseBoard):
         tag = self.gettags(item_id)[0]
         return tag
 
-    def create_card(self):
-        image_path = os.path.join(os.path.dirname(
-            os.path.realpath(__file__)), CARD_ROOT)
-        for path in os.listdir(image_path):
-            name = os.path.splitext(path)[0]
-            mark, value = name.split('_')
-            if not mark.startswith('jocker'):
-                yield CardFace(tk.PhotoImage(
-                    file=os.path.join(image_path, path)), mark, int(value))
-
     def setup_cards(self, cards):
         self.col_position, self.row_position = 0, 0
         for i, face in enumerate(cards):
@@ -94,18 +97,18 @@ class Board(BaseBoard):
                 self.col_position = CARD_X
             else:
                 self.col_position += SPACE
-            name = 'card{}'.format(i)
+            name = f'card{i}'
             item_id = self.create_image(
                 self.col_position, self.row_position, image=face.image, tags=name)
-            card = Card(item_id, face, self.col_position, self.row_position, True, i)
+            card = CardOnBoard(item_id, face, self.col_position, self.row_position, True, i)
             self.playing_cards[name] = card
 
     def set_stock_cards(self, cards):
         x, y = STOCK_X, STOCK_Y
         for i, face in enumerate(cards):
-            name = 'stock{}'.format(i)
+            name = f'stock{i}'
             item_id = self.create_image(x, y, image=self.back, tags=name)
-            card = Card(item_id, face, x, y, order=i)
+            card = CardOnBoard(item_id, face, x, y, order=i)
             self.playing_cards[name] = card
             x += STACK_OFFSET
             y -= STACK_OFFSET

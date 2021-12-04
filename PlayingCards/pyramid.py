@@ -1,8 +1,6 @@
-import os
-import random
 import tkinter as tk
 
-from base import BaseBoard, BaseCard, CardFace
+from base import BaseBoard, BaseCard, CardFace, Deck
 from Globals import BOARD_WIDTH, BOARD_HEIGHT, CARD_ROOT, MOVE_SPEED
 
 
@@ -26,7 +24,21 @@ JOCKER = 'jocker'
 STOCK = 'stock'
 
 
-class Card(BaseCard):
+class PyramidDeck(Deck):
+
+    def __init__(self):
+        super().__init__()
+        self._deck = [card for card in self.get_cards() if not card.mark.startswith(JOCKER)]
+        self.jockers = [card for card in self.get_cards() if card.mark.startswith(JOCKER)]
+
+    def get_cards(self):
+        for path in self.cards_dir.iterdir():
+            name = path.stem
+            mark, value = name.split('_')
+            yield CardFace(tk.PhotoImage(file=path), mark, int(value))
+
+
+class CardOnBoard(BaseCard):
 
     __slots__ = ('status', 'left', 'right')
 
@@ -41,19 +53,11 @@ class Card(BaseCard):
 class Board(BaseBoard):
 
     def __init__(self, master, status_text, sounds, delay=400, rows=7):
+        super().__init__(master, status_text, delay, sounds)
         self.rows = rows
         self.selected = []
         self.now_moving = False
-        super().__init__(master, status_text, delay, sounds)
-
-    def create_card(self):
-        image_path = os.path.join(os.path.dirname(
-            os.path.realpath(__file__)), CARD_ROOT)
-        for path in os.listdir(image_path):
-            name = os.path.splitext(path)[0]
-            mark, value = name.split('_')
-            yield CardFace(tk.PhotoImage(
-                file=os.path.join(image_path, path)), mark, int(value))
+        self.deck = PyramidDeck()
 
     def new_game(self):
         self.delete('all')
@@ -61,15 +65,14 @@ class Board(BaseBoard):
         self.discard_y = DISCARD_Y
         # config() changes attributes after creating object.
         self.config(width=BOARD_WIDTH, height=BOARD_HEIGHT)
-        random.shuffle(self.deck)
+        self.deck.shuffle()
         self.playing_cards = {}
-        cards = [face for face in self.deck if not face.mark.startswith(JOCKER)]
-        jockers = [face for face in self.deck if face.mark.startswith(JOCKER)]
         # the number of pyramit cards
         limit = int(self.rows * (self.rows + 1) / 2)
-        self.setup_pyramid(cards[:limit])
-        self.setup_stock(cards[limit:])
-        self.setup_jocker(jockers)
+        self.setup_pyramid(self.deck[:limit])
+        self.setup_stock(self.deck[limit:])
+        self.setup_jocker(self.deck.jockers)
+
         for name in self.playing_cards.keys():
             self.tag_bind(name, '<ButtonPress-1>', self.click)
 
@@ -81,18 +84,17 @@ class Board(BaseBoard):
             cards.append(pyramid_cards[start:start + i])
             start = start + i
         # layout pyramid
-        template = 'pyramid{}{}'
         x, y = PYRAMID_X, PYRAMID_Y
         for i, row in enumerate(cards, 1):
             for j, face in enumerate(row, 1):
-                name = template.format(i, j)
+                name = f'pyramid{i}{j}'
                 item_id = self.create_image(
                     x, y,
                     image=face.image if i == self.rows else self.back,
                     tags=name
                 )
                 face_up = True if i == self.rows else False
-                card = Card(item_id, face, 'pyramid', x, y, face_up)
+                card = CardOnBoard(item_id, face, 'pyramid', x, y, face_up)
                 self.playing_cards[name] = card
                 x += SPACE
             x -= (SPACE * i) + PYRAMID_OFFSET_X
@@ -100,16 +102,16 @@ class Board(BaseBoard):
         # set left and right cards
         for i, row in enumerate(cards[:-1], 1):
             for j, _ in enumerate(row, 1):
-                card = self.playing_cards[template.format(i, j)]
-                card.left = self.playing_cards[template.format(i + 1, j)]
-                card.right = self.playing_cards[template.format(i + 1, j + 1)]
+                card = self.playing_cards[f'pyramid{i}{j}']
+                card.left = self.playing_cards[f'pyramid{i + 1}{j}']
+                card.right = self.playing_cards[f'pyramid{i + 1}{j + 1}']
 
     def setup_stock(self, cards):
         x, y = STOCK_X, STOCK_Y
         for i, face in enumerate(cards):
-            name = '{}{}'.format(STOCK, i)
+            name = f'{STOCK}{i}'
             item_id = self.create_image(x, y, image=self.back, tags=name)
-            card = Card(item_id, face, STOCK, x, y)
+            card = CardOnBoard(item_id, face, STOCK, x, y)
             self.playing_cards[name] = card
             x += STACK_OFFSET
             y -= STACK_OFFSET
@@ -117,9 +119,9 @@ class Board(BaseBoard):
     def setup_jocker(self, jockers):
         x, y = JOCKER_X, JOCKER_Y
         for i, face in enumerate(jockers):
-            name = '{}{}'.format(JOCKER, i)
+            name = f'{JOCKER}{i}'
             item_id = self.create_image(x, y, image=face.image, tags=name)
-            card = Card(item_id, face, JOCKER, x, y, True)
+            card = CardOnBoard(item_id, face, JOCKER, x, y, True)
             self.playing_cards[name] = card
             x += SPACE
 
@@ -211,9 +213,9 @@ class Board(BaseBoard):
         elif len(self.selected) == 1:
             try:
                 text = self.status_text.get()
-                status = '{} + {} = {}'.format(text, val, int(text) + int(val))
+                status = f'{text} + {val} = {int(text) + int(val)}'
             except ValueError:
-                status = '{} + {} = {}'.format(text, val, 13)
+                status = f'{text} + {val} = {13}'
         self.status_text.set(status)
 
     def is_game_end(self):

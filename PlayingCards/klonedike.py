@@ -1,8 +1,6 @@
-import os
-import random
 import tkinter as tk
 
-from base import BaseBoard, BaseCard, CardFace
+from base import BaseBoard, BaseCard, CardFace, Deck
 from Globals import BOARD_WIDTH, BOARD_HEIGHT, CARD_ROOT, MOVE_SPEED
 
 
@@ -32,7 +30,21 @@ OPENEDSTOCK = 'openedstock'
 ACESTOCK = 'acestock'
 
 
-class Card(BaseCard):
+class KlonedikeDeck(Deck):
+
+    def __init__(self):
+        super().__init__()
+        self._deck = [card for card in self.get_cards()]
+
+    def get_cards(self):
+        for path in self.cards_dir.iterdir():
+            name = path.stem
+            mark, value = name.split('_')
+            if not mark.startswith('jocker'):
+                yield CardFace(tk.PhotoImage(file=path), mark, int(value))
+
+
+class CardOnBoard(BaseCard):
 
     __slots__ = ('status', 'order', 'col')
 
@@ -66,6 +78,7 @@ class Holder:
 class Board(BaseBoard):
 
     def __init__(self, master, status_text, sounds, delay=400, rows=7):
+        super().__init__(master, status_text, delay, sounds)
         self.rows = rows
         self.open_stock_x = OPEN_STOCK_X
         self.open_stock_y = OPEN_STOCK_Y
@@ -76,17 +89,7 @@ class Board(BaseBoard):
         self.is_start_horizontal_move = False
         self.is_start_stock_back = False
         self.holder = self.get_image('holder')
-        super().__init__(master, status_text, delay, sounds)
-
-    def create_card(self):
-        image_path = os.path.join(os.path.dirname(
-            os.path.realpath(__file__)), CARD_ROOT)
-        for path in os.listdir(image_path):
-            name = os.path.splitext(path)[0]
-            mark, value = name.split('_')
-            if not mark.startswith('jocker'):
-                yield CardFace(tk.PhotoImage(
-                    file=os.path.join(image_path, path)), mark, int(value))
+        self.deck = KlonedikeDeck()
 
     def new_game(self):
         self.delete('all')
@@ -94,7 +97,7 @@ class Board(BaseBoard):
         self.holders = {}
         # config() changes attributes after creating object.
         self.config(width=BOARD_WIDTH, height=BOARD_HEIGHT)
-        random.shuffle(self.deck)
+        self.deck.shuffle()
         limit = int(self.rows * (self.rows + 1) / 2)  # the number of klondike cards
         self.setup_holder()
         self.setup_cards(self.deck[:limit])
@@ -107,9 +110,9 @@ class Board(BaseBoard):
     def setup_holder(self):
         x, y = CARD_X, CARD_Y
         for i in range(1, 8):
-            name = '{}{}'.format(CARDHOLDER, i)
+            name = f'{CARDHOLDER}{i}'
             item_id = self.create_image(x, y, image=self.holder, tags=name)
-            self.holders[name] = Holder(item_id, x, y, status=CARDHOLDER, col='col{}1'.format(i))
+            self.holders[name] = Holder(item_id, x, y, status=CARDHOLDER, col=f'col{i}1')
             x += SPACE_X
         # name = 'stockholder'
         item_id = self.create_image(STOCK_X, STOCK_Y, image=self.holder, tags=STOCKHOLDER)
@@ -117,7 +120,7 @@ class Board(BaseBoard):
         x, y = ACEHOLDER_X, ACEHOLDER_Y
         for i in range(1, 3):
             for j in range(1, 3):
-                name = '{}{}{}'.format(ACEHOLDER, i, j)
+                name = f'{ACEHOLDER}{i}{j}'
                 item_id = self.create_image(x, y, image=self.holder, tags=name)
                 self.holders[name] = Holder(item_id, x, y, status=ACEHOLDER)
                 x += SPACE_X
@@ -135,10 +138,10 @@ class Board(BaseBoard):
         for i, row in enumerate(cards, 1):
             for j, face in enumerate(row, 1):
                 face_up = True if j == len(row) else False
-                col = 'col{}{}'.format(i, int(face_up))
+                col = f'col{i}{int(face_up)}'
                 item_id = self.create_image(
                     x, y, image=face.image if j == len(row) else self.back, tags=col)
-                card = Card(item_id, face, CARD, x, y, face_up, col=col)
+                card = CardOnBoard(item_id, face, CARD, x, y, face_up, col=col)
                 self.playing_cards[item_id] = card
                 y += CARD_OFFSET_Y
             x += SPACE_X
@@ -147,9 +150,9 @@ class Board(BaseBoard):
     def setup_stock(self, cards):
         x, y = STOCK_X, STOCK_Y
         for i, face in enumerate(cards, 1):
-            name = '{}{}1'.format(STOCK, i)
+            name = f'{STOCK}{i}1'
             item_id = self.create_image(x, y, image=self.back, tags=name)
-            card = Card(item_id, face, STOCK, x, y, order=i, col=name)
+            card = CardOnBoard(item_id, face, STOCK, x, y, order=i, col=name)
             self.playing_cards[item_id] = card
             x += STACK_OFFSET
             y -= STACK_OFFSET
@@ -209,8 +212,7 @@ class Board(BaseBoard):
         self.is_start_horizontal_move = True
         destinations = (goal.x, goal.y) if goal.status in {ACEHOLDER, CARDHOLDER, ACESTOCK} \
             else (goal.x, goal.y + CARD_OFFSET_Y)
-        self.goal_col = '{}{}1'.format(ACESTOCK, start.id) if start.status == ACESTOCK \
-            else goal.col
+        self.goal_col = f'{ACESTOCK}{start.id}1' if start.status == ACESTOCK else goal.col
         self.tag_raise(start.col)
         self.move_start([start], destinations)
 
@@ -297,7 +299,7 @@ class Board(BaseBoard):
                     if start.value - 1 == goal.value and start.mark == goal.mark:
                         start.status = ACESTOCK
                         self.start_horizontal_move(start, goal)
-            elif isinstance(obj1, Card) and obj1.status == OPENEDSTOCK:
+            elif isinstance(obj1, CardOnBoard) and obj1.status == OPENEDSTOCK:
                 # openedstock => card
                 if isinstance(obj2, list):
                     if goal.value - 1 == start.value and goal.color != start.color:
@@ -309,11 +311,11 @@ class Board(BaseBoard):
                     start.status = CARD if goal.status == CARDHOLDER else ACESTOCK
                     self.start_horizontal_move(start, goal)
                 # openedstock => onto acestock
-                elif isinstance(obj2, Card) and obj2.status == ACESTOCK:
+                elif isinstance(obj2, CardOnBoard) and obj2.status == ACESTOCK:
                     if start.value - 1 == goal.value and start.mark == goal.mark:
                         start.status = ACESTOCK
                         self.start_horizontal_move(start, goal)
-            elif isinstance(obj1, Card) and obj1.status == ACESTOCK:
+            elif isinstance(obj1, CardOnBoard) and obj1.status == ACESTOCK:
                 # acestock => card
                 if isinstance(obj2, list):
                     if goal.value - 1 == start.value and goal.color != start.color:
@@ -331,7 +333,7 @@ class Board(BaseBoard):
 
     def update_status(self, items):
         text = ', '.join(
-            ['{} {}'.format(item.mark, item.value) for item in items if isinstance(item, Card)])
+            [f'{item.mark} {item.value}' for item in items if isinstance(item, CardOnBoard)])
         self.status_text.set(text)
 
 

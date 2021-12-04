@@ -1,4 +1,5 @@
 import os
+import pathlib
 import tkinter as tk
 import tkinter.ttk as ttk
 
@@ -47,11 +48,11 @@ class Window(ttk.Frame):
         self.rule = None
 
     def create_images(self):
-        image_path = os.path.join(os.path.dirname(
-            os.path.realpath(__file__)), IMAGE_ROOT)
+        parent_dir = pathlib.Path(__file__).parent.resolve()
+        images_dir = parent_dir / IMAGE_ROOT
         for name in (CLOSE, PYRAMID, RELOAD, CLOVER, RULES, KLONEDIKE, COUPLE):
-            self.images[name] = tk.PhotoImage(
-                file=os.path.join(image_path, '{}.png'.format(name)))
+            image_file = images_dir / f'{name}.png'
+            self.images[name] = tk.PhotoImage(file=image_file)
 
     def create_ui(self):
         self.create_board()

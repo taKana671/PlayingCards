@@ -1,9 +1,7 @@
-import os
-import random
 import tkinter as tk
 from collections import namedtuple
 
-from base import BaseBoard, BaseCard, CardFace
+from base import BaseBoard, BaseCard, CardFace, Deck
 from Globals import BOARD_WIDTH, BOARD_HEIGHT, CARD_ROOT, MOVE_SPEED
 
 
@@ -16,7 +14,21 @@ STOCK_X = BOARD_WIDTH - 150
 STOCK_Y = BOARD_HEIGHT - 100
 
 
-class Card(BaseCard):
+class FourLeafCloverDeck(Deck):
+
+    def __init__(self):
+        super().__init__()
+        self._deck = [card for card in self.get_cards()]
+
+    def get_cards(self):
+        for path in self.cards_dir.iterdir():
+            name = path.stem
+            mark, value = name.split('_')
+            if not mark.startswith('jocker') and value != '10':
+                yield CardFace(tk.PhotoImage(file=path), mark, int(value))
+
+
+class CardOnBoard(BaseCard):
 
     __slots__ = ('order')
 
@@ -28,17 +40,18 @@ class Card(BaseCard):
 class Board(BaseBoard):
 
     def __init__(self, master, status_text, sounds, delay=400, rows=4, columns=4):
+        super().__init__(master, status_text, delay, sounds)
         self.rows = rows
         self.columns = columns
         self.selected = []
         self.now_moving = False
-        super().__init__(master, status_text, delay, sounds)
+        self.deck = FourLeafCloverDeck()
 
     def new_game(self):
         self.delete('all')
         # config() changes attributes after creating object.
         self.config(width=BOARD_WIDTH, height=BOARD_HEIGHT)
-        random.shuffle(self.deck)
+        self.deck.shuffle()
         self.playing_cards = {}
         sep = self.rows * self.columns
         self.setup_cards(self.deck[:sep])
@@ -46,22 +59,12 @@ class Board(BaseBoard):
         for name in self.playing_cards.keys():
             self.tag_bind(name, '<ButtonPress-1>', self.click)
 
-    def create_card(self):
-        image_path = os.path.join(os.path.dirname(
-            os.path.realpath(__file__)), CARD_ROOT)
-        for path in os.listdir(image_path):
-            name = os.path.splitext(path)[0]
-            mark, value = name.split('_')
-            if not mark.startswith('jocker') and value != '10':
-                yield CardFace(tk.PhotoImage(
-                    file=os.path.join(image_path, path)), mark, int(value))
-
     def setup_cards(self, cards):
         x, y = CARD_X, CARD_Y
         for i, face in enumerate(cards, 1):
-            name = 'card{}'.format(i)
+            name = f'card{i}'
             item_id = self.create_image(x, y, image=face.image, tags=name)
-            card = Card(item_id, face, x, y, True, i)
+            card = CardOnBoard(item_id, face, x, y, True, i)
             self.playing_cards[name] = card
             x += SPACE
             if i % self.columns == 0:
@@ -71,9 +74,9 @@ class Board(BaseBoard):
     def setup_stock(self, cards):
         x, y = STOCK_X, STOCK_Y
         for i, face in enumerate(cards):
-            name = 'stock{}'.format(i)
+            name = f'stock{i}'
             item_id = self.create_image(x, y, image=self.back, tags=name)
-            card = Card(item_id, face, x, y)
+            card = CardOnBoard(item_id, face, x, y)
             self.playing_cards[name] = card
             x += STACK_OFFSET
             y -= STACK_OFFSET
@@ -154,7 +157,7 @@ class Board(BaseBoard):
                 self.now_moving = False
 
     def update_status(self):
-        text = ', '.join(['{} {}'.format(card.mark, card.value) for card in self.selected])
+        text = ', '.join([f'{card.mark} {card.value}' for card in self.selected])
         self.status_text.set(text)
 
     def is_game_end(self):
